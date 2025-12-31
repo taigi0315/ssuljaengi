@@ -1,0 +1,25 @@
+# Ticket: TICKET-003-debug-broken-video
+
+## Context
+
+The previous fix (TICKET-002) resulted in a corrupted/unopenable video file. The user reports a "redundant error" and cannot open the file.
+We need to debug why the `setsar/format` standardization broke the file, add detailed logging, and verify the correct FFmpeg usage for `zoompan` + `concat`.
+
+## Design / Architecture
+
+- **Logging**: Enhance `FFmpegBuilder` and `VideoAssembler` logs.
+- **Verification**: Use `testsrc` in a repro script to actually run FFmpeg and verify the output validity.
+- **Review**: Check FFmpeg docs for `concat` vs `zoompan` interaction.
+
+## Tasks & Tests
+
+- [x] Add detailed logging to `VideoAssembler` and `FFmpegBuilder` <!-- id: 1 -->
+- [x] Create a repro script using `testsrc` to strictly test the filter graph execution <!-- id: 2 -->
+- [x] Analyze the corruption (is it a headers issue? pixel format?) <!-- id: 3 -->
+- [x] Fix the filter graph to be robust <!-- id: 4 -->
+- [x] Verify output file is playable <!-- id: 5 -->
+
+## Acceptance Criteria
+
+- [x] Video file is openable and plays correctly <!-- id: 6 -->
+- [x] No freeze after 3s (original issue) <!-- id: 7 -->
