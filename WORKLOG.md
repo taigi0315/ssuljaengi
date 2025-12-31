@@ -27,3 +27,7 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Change**: Updated default image style to "Korean Webtoon" aesthetic.
     - **Fix**: Forced single-character isolation for character sheets using negative prompts and strict instructions.
     - **Verification**: Validated prompts via `tests/verify_visual_prompts.py` dry-run.
+  - **New Feature**: Extreme Dramatic Hook (TICKET-007).
+    - **Change**: Enforced "Cold Open" / "Flash Forward" logic in ScriptWriter system prompt.
+    - **Fix**: Relaxed validation to allow 0.5s-3.0s Hook scenes and longer Climax scenes (up to 15s).
+    - **Verification**: Validated `Script` model acceptance of 1.5s hook using `tests/verify_hook_validation.py`.

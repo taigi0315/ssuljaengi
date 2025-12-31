@@ -97,8 +97,8 @@ class EffectType(str, Enum):
 
 # Act duration guidelines (in seconds) - Revised for 40s target
 ACT_DURATION_RANGES = {
-    ActType.HOOK: (1.0, 5.0),    # Ultra-short hook
-    ActType.BUILD: (3.0, 8.0),   # Fast context
+    ActType.HOOK: (0.5, 3.0),    # Ultra-short hook (Extreme Dramatic)
+    ActType.BUILD: (3.0, 10.0),  # Fast context
     ActType.CRISIS: (5.0, 12.0), # Quick escalation
     ActType.CLIMAX: (10.0, 15.0), # Main engagement
     ActType.RESOLUTION: (5.0, 10.0), # Quick wrap-up

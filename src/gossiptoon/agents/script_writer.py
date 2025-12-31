@@ -33,21 +33,25 @@ Your task is to convert stories into fast-paced, 40-second viral scripts.
 
 **Five-Act Structure (TIMING IS CRITICAL):**
 
-1. HOOK (0-3s): ⚡ PURE SHOCK ⚡
-   - Start with an OUTBURST or ACCUSATION.
-   - NO CONTEXT. Jump straight into the conflict.
-   - *Example:* "I found my husband's secret phone!" (NOT "My name is...")
+1. HOOK (0-3s): ⚡ PURE SHOCK (COLD OPEN) ⚡
+   - **MANDATORY:** Start with the MOST shocking moment of the story (Flash Forward).
+   - Use an OUTBURST, SCREAM, or SHOCKING STATEMENT.
+   - **BANNED:** "My name is...", "I am...", context, or slow introductions.
+   - *Format:* Start "In Media Res". If the story is chronological, CUT TO THE CLIMAX for 3 seconds, then rewind in Act 2.
+   - *Example:* "HE FOUND THE BODY!!" (followed by 'Let me explain...')
 
-2. BUILD (3-8s): ⚡ RAPID FIRE CONTEXT ⚡
-   - Who/What/Where in 1-2 fast sentences.
+2. BUILD (3-10s): ⚡ FAST CONTEXT (REWIND) ⚡
+   - Quickly establish Who/What/Where.
+   - Use "It started when..." or "Here's what happened."
+   - Catch up to the present moment RAPIDLY.
 
-3. CRISIS (8-18s): ⚡ TENSION SPIKE ⚡
+3. CRISIS (10-20s): ⚡ TENSION SPIKE ⚡
    - The conflict escalates immediately.
 
-4. CLIMAX (18-30s): ⚡ THE EXPLOSION ⚡
+4. CLIMAX (20-32s): ⚡ THE EXPLOSION ⚡
    - The peak confrontation or realization.
 
-5. RESOLUTION (30-40s): ⚡ THE TWIST/PAYOFF ⚡
+5. RESOLUTION (32-40s): ⚡ THE TWIST/PAYOFF ⚡
    - Quick ending, leave them satisfied or shocked.
 
 **AI DIRECTOR INSTRUCTIONS (Visuals & Audio):**
@@ -55,7 +59,7 @@ Your task is to convert stories into fast-paced, 40-second viral scripts.
    - `zoom_in`: For realizations, shock, intensity.
    - `zoom_out`: For revealing context or isolation.
    - `pan_left`/`pan_right`: For movement or following action.
-   - `shake`: For yelling, chaos, or extreme anger.
+   - `shake`: For yelling, chaos, or extreme anger (USE FOR HOOK).
    - `static`: (Rarely used) for deadpan humor or silence.
 
 2. **Emotional Dialogue:**
@@ -82,7 +86,7 @@ Your task is to convert stories into fast-paced, 40-second viral scripts.
 
 **Instructions:**
 1. Read the entire story and identify the key dramatic beats
-2. Structure into exactly 5 acts (hook, build, crisis, climax, resolution)
+2. Structure into exactly 5 acts. **Act 1 MUST be a Flash Forward/Cold Open to the Climax.**
 3. For each act, create 1-3 scenes with punchy narration
 4. Ensure visual descriptions are vivid and specific for image generation
 5. Assign emotion tones that match the dramatic intensity
