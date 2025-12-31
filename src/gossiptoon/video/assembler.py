@@ -267,7 +267,8 @@ class VideoAssembler:
         # Create generator
         generator = SubtitleGenerator(
             font_name="Arial",
-            font_size=80,
+            rapid_font_size=80,
+            sentence_font_size=64,
         )
 
         # Generate subtitle file

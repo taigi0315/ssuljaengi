@@ -40,3 +40,8 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Root Cause**: `zoompan` and other filters were generating slightly more frames than calculated, causing segment over-run.
     - **Fix**: Added `trim=duration=...` filter to enforce exact segment durations before concatenation.
     - **Verification**: Re-ran `manual_reassemble.py` on `project_20251231_165437` - successful render without drift.
+  - **Feature**: Hybrid Subtitle Logic (TICKET-010).
+    - **Change**: Implemented emotion-based subtitle mode switching in `SubtitleGenerator`.
+    - **Modes**: Rapid (word-by-word, pastel, 70% position) for intense emotions; Sentence (full text, yellow, bottom) for calm narration.
+    - **Detection**: Uses `EmotionTone` metadata (anger, excitement, etc.) and text heuristics (exclamation marks, short sentences).
+    - **Verification**: Generated ASS file with dual styles, successfully rendered with mode transitions.
