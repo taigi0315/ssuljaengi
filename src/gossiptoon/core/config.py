@@ -122,12 +122,17 @@ class ImageConfig(BaseModel):
     """Image generation configuration."""
 
     style: str = Field(
-        default="cinematic digital art, dramatic lighting, 8k quality",
+        default=(
+            "A panel from a Korean webtoon, digital illustration style, with clean line art and expressive characters. "
+            "The characters have large, expressive eyes and stylish, contemporary clothing. "
+            "The background is detailed but clean, with soft, bright digital coloring. "
+            "The overall aesthetic is modern, clean, and vibrant, typical of a popular romance or drama webtoon."
+        ),
         description="Default image style",
     )
     aspect_ratio: str = Field(default="9:16", description="Image aspect ratio")
     negative_prompt: str = Field(
-        default="text, watermark, blurry, low quality, distorted",
+        default="text, watermark, blurry, low quality, distorted, speech bubbles, jagged lines, messy sketch",
         description="Negative prompt",
     )
 
@@ -206,11 +211,18 @@ class ConfigManager:
 
             self.image = ImageConfig(
                 style=os.getenv(
-                    "IMAGE_STYLE", "cinematic digital art, dramatic lighting, 8k quality"
+                    "IMAGE_STYLE", 
+                    (
+                        "A panel from a Korean webtoon, digital illustration style, with clean line art and expressive characters. "
+                        "The characters have large, expressive eyes and stylish, contemporary clothing. "
+                        "The background is detailed but clean, with soft, bright digital coloring. "
+                        "The overall aesthetic is modern, clean, and vibrant, typical of a popular romance or drama webtoon."
+                    )
                 ),
                 aspect_ratio=os.getenv("IMAGE_ASPECT_RATIO", "9:16"),
                 negative_prompt=os.getenv(
-                    "IMAGE_NEGATIVE_PROMPT", "text, watermark, blurry, low quality, distorted"
+                    "IMAGE_NEGATIVE_PROMPT", 
+                    "text, watermark, blurry, low quality, distorted, speech bubbles, jagged lines, messy sketch"
                 ),
             )
 

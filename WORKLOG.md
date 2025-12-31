@@ -23,3 +23,7 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Cause**: Accumulated rounding errors in video duration (float) vs audio duration caused video to drift ahead of audio.
     - **Fix**: Implemented Frame-Accurate Duration Calculation (DDA) in `VideoAssembler` to lock video segments to cumulative audio timestamps.
     - **Verification**: Logs confirm drift is capped at ±0.5 frames (<16ms).
+  - **Refined**: Visual Generation Prompts (TICKET-006).
+    - **Change**: Updated default image style to "Korean Webtoon" aesthetic.
+    - **Fix**: Forced single-character isolation for character sheets using negative prompts and strict instructions.
+    - **Verification**: Validated prompts via `tests/verify_visual_prompts.py` dry-run.

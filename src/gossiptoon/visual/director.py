@@ -144,18 +144,22 @@ class VisualDirector:
                 script, char_name
             )
 
-            # Create portrait-specific prompt
-            portrait_prompt = ImagePrompt(
-                scene_id=f"portrait_{char_name.lower().replace(' ', '_')}",
-                base_prompt=f"""Character portrait of {char_name}:
+            # Create portrait-specific prompt with strict isolation
+            # TICKET-006: Forced single character generation
+            portrait_base_prompt = f"""Character design sheet for {char_name}:
 {char_description}
 
-Style: Clean portrait shot, centered, 9:16 vertical format, dramatic lighting.
-Focus on face and upper body. Cinematic quality, suitable for YouTube Shorts.""",
+FORMAT: Single character full-body portrait on white background.
+VIEW: Front facing, neutral expression.
+STRICTLY SINGLE CHARACTER. NO background elements, NO other people."""
+
+            portrait_prompt = ImagePrompt(
+                scene_id=f"portrait_{char_name.lower().replace(' ', '_')}",
+                base_prompt=portrait_base_prompt,
                 characters=[char_name],
                 style=self.config.image.style,
                 aspect_ratio=self.config.image.aspect_ratio,
-                negative_prompt=self.config.image.negative_prompt,
+                negative_prompt=self.config.image.negative_prompt + ", group, couple, multiple people, crowd, background, scenery, text, overlay",
             )
 
             # Generate portrait image
