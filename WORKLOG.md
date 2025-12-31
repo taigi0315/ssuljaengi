@@ -31,3 +31,7 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Change**: Enforced "Cold Open" / "Flash Forward" logic in ScriptWriter system prompt.
     - **Fix**: Relaxed validation to allow 0.5s-3.0s Hook scenes and longer Climax scenes (up to 15s).
     - **Verification**: Validated `Script` model acceptance of 1.5s hook using `tests/verify_hook_validation.py`.
+  - **New Feature**: Rapid Word Subtitles (TICKET-008).
+    - **Change**: Added `SubtitleGenerator` to create Word-Level ASS subtitles with random pastel colors.
+    - **Change**: Updated `VideoAssembler` and `FFmpegBuilder` to overlay the generated ASS file.
+    - **Verification**: Verified subtitle file content and successful video render via `scripts/manual_reassemble.py`.

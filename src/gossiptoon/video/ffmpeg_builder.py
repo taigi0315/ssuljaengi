@@ -132,7 +132,7 @@ class FFmpegBuilder:
         inputs = self._build_inputs(segments, master_audio)
 
         # Build filter complex
-        filter_complex = self._build_filter_complex(segments)
+        filter_complex = self._build_filter_complex(segments, **options)
 
         # Build maps
         maps = ["[outv]",  # Video output from filter
@@ -183,7 +183,7 @@ class FFmpegBuilder:
 
         return inputs
 
-    def _build_filter_complex(self, segments: list[VideoSegment]) -> str:
+    def _build_filter_complex(self, segments: list[VideoSegment], **options: Any) -> str:
         """Build filter complex graph.
 
         This is where effects are applied and segments are concatenated.
@@ -245,10 +245,21 @@ class FFmpegBuilder:
 
         # Concatenate all segments
         concat_inputs = "".join(f"[v{i}]" for i in range(len(segments)))
+        
+        # If subtitles provided, concat output is intermediate
+        final_video_label = "[outv]" if not options.get("subtitles_path") else "[v_concat]"
+        
         concat_filter = (
-            f"{concat_inputs}concat=n={len(segments)}:v=1:a=0[outv]"
+            f"{concat_inputs}concat=n={len(segments)}:v=1:a=0{final_video_label}"
         )
         filter_parts.append(concat_filter)
+
+        # Apply subtitles if provided
+        if options.get("subtitles_path"):
+            # Escape path for FFmpeg filter
+            sub_path = str(options["subtitles_path"]).replace(":", "\\:").replace("'", "\\'")
+            subtitle_filter = f"[v_concat]subtitles='{sub_path}'[outv]"
+            filter_parts.append(subtitle_filter)
 
         # Join all filters
         filter_complex = ";".join(filter_parts)
@@ -327,7 +338,7 @@ class FFmpegBuilder:
         # Keys that are handled specially and should NOT become FFmpeg flags
         excluded_keys = [
             "video_codec", "preset", "crf", "audio_codec", 
-            "audio_bitrate", "sample_rate", "subtitle_file"
+            "audio_bitrate", "sample_rate", "subtitle_file", "subtitles_path"
         ]
 
         # Add custom options

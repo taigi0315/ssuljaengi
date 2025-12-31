@@ -89,7 +89,7 @@ class VideoAssembler:
             segments=segments,
             master_audio=audio_project.master_audio_path,
             output_file=output_file,
-            subtitle_file=subtitle_file,
+            subtitles_path=subtitle_file,
         )
 
         # Execute FFmpeg
@@ -261,33 +261,20 @@ class VideoAssembler:
         """
         logger.info("Generating captions...")
 
-        # Create caption effect
-        caption_config = CaptionConfig(
-            enabled=True,
-            font_family="Arial",
-            font_size=48,
-            font_color="white",
-            font_weight="bold",
-            box_enabled=True,
-            box_color="black@0.6",
-            position_y="bottom",
-            margin_y=100,
-            highlight_enabled=True,
-            highlight_color="yellow",
+        # Import locally to avoid circular dependencies
+        from gossiptoon.video.subtitles import SubtitleGenerator
+
+        # Create generator
+        generator = SubtitleGenerator(
+            font_name="Arial",
+            font_size=80,
         )
-
-        caption_effect = CaptionEffect(caption_config)
-
-        # Get all word timestamps
-        all_timestamps = []
-        for segment in audio_project.segments:
-            all_timestamps.extend(segment.timestamps)
 
         # Generate subtitle file
         subtitle_file = self.config.videos_dir / f"{script_id}_captions.ass"
 
-        caption_effect.generate_subtitle_file(
-            word_timestamps=all_timestamps,
+        generator.generate_ass_file(
+            audio_project=audio_project,
             output_path=subtitle_file,
             video_width=self.config.video.width,
             video_height=self.config.video.height,
