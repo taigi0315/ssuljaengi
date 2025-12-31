@@ -219,29 +219,29 @@ class FFmpegBuilder:
                 logger.info(f"Applied effect to segment {i}: Duration={segment.duration:.3f}s, FPS={self.fps}")
                 filter_parts.append(segment_filter)
                 
-                # Enforce consistent properties (SAR=1, yuv420p, fps) BEFORE concatenation
-                # This fixes freeze/corruption issues by ensuring all streams match perfectly
-                standardize_filter = (
-                    f"{effect_out_label}"
-                    f"setsar=1,"
-                    f"format=yuv420p,"
-                    f"fps={self.fps}"
-                    f"{output_label}"
-                )
-                filter_parts.append(standardize_filter)
+                # Enforce consistent properties + resolution (Scale & Pad)
+                # This ensures that even if an effect (like static CameraEffect) didn't scale, we force it here.
+                standardize_input = effect_out_label
             else:
-                # No effects - scale to output size
-                # Enforce consistent SAR and Format for all segments
-                scale_filter = (
-                    f"{input_label}scale={self.output_width}:{self.output_height}:"
-                    f"force_original_aspect_ratio=decrease,"
-                    f"pad={self.output_width}:{self.output_height}:-1:-1:color=black,"
-                    f"setsar=1,"
-                    f"format=yuv420p,"
-                    f"fps={self.fps}"
-                    f"{output_label}"
-                )
-                filter_parts.append(scale_filter)
+                # No effects - input comes directly from source
+                standardize_input = input_label
+
+            # Universal standardization filter (Trim + Scale + Pad + SAR + Format + FPS)
+            # 1. trim: Enforce EXACT duration (prevents zoompan drift)
+            # 2. scale/pad: Enforce resolution (fixes mismatch)
+            # 3. setsar/format/fps: Enforce encoding properties
+            standardize_filter = (
+                f"{standardize_input}"
+                f"trim=duration={segment.duration},"
+                f"scale={self.output_width}:{self.output_height}:"
+                f"force_original_aspect_ratio=decrease,"
+                f"pad={self.output_width}:{self.output_height}:-1:-1:color=black,"
+                f"setsar=1,"
+                f"format=yuv420p,"
+                f"fps={self.fps}"
+                f"{output_label}"
+            )
+            filter_parts.append(standardize_filter)
 
         # Concatenate all segments
         concat_inputs = "".join(f"[v{i}]" for i in range(len(segments)))

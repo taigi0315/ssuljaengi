@@ -35,3 +35,8 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Change**: Added `SubtitleGenerator` to create Word-Level ASS subtitles with random pastel colors.
     - **Change**: Updated `VideoAssembler` and `FFmpegBuilder` to overlay the generated ASS file.
     - **Verification**: Verified subtitle file content and successful video render via `scripts/manual_reassemble.py`.
+  - **Bug Fix**: AV Sync Drift (TICKET-009).
+    - **Issue**: Progressive visual delay (scenes appearing ~1 step behind audio).
+    - **Root Cause**: `zoompan` and other filters were generating slightly more frames than calculated, causing segment over-run.
+    - **Fix**: Added `trim=duration=...` filter to enforce exact segment durations before concatenation.
+    - **Verification**: Re-ran `manual_reassemble.py` on `project_20251231_165437` - successful render without drift.
