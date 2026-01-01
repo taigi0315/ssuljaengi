@@ -23,6 +23,7 @@ class PipelineStage(str, Enum):
     INITIALIZED = "initialized"
     STORY_FOUND = "story_found"
     SCRIPT_GENERATED = "script_generated"
+    ENGAGEMENT_GENERATED = "engagement_generated"  # NEW
     AUDIO_GENERATED = "audio_generated"
     VISUALS_GENERATED = "visuals_generated"
     VIDEO_ASSEMBLED = "video_assembled"
@@ -40,6 +41,7 @@ class CheckpointData(BaseModel):
     # Stage-specific data
     story_data: Optional[dict[str, Any]] = Field(None, description="Story finder output")
     script_data: Optional[dict[str, Any]] = Field(None, description="Script writer output")
+    engagement_data: Optional[dict[str, Any]] = Field(None, description="Engagement writer output")  # NEW
     audio_data: Optional[dict[str, Any]] = Field(None, description="Audio generator output")
     visual_data: Optional[dict[str, Any]] = Field(None, description="Visual director output")
     video_data: Optional[dict[str, Any]] = Field(None, description="Video assembler output")
@@ -257,6 +259,8 @@ class CheckpointManager:
             checkpoint.story_data = data
         elif stage == PipelineStage.SCRIPT_GENERATED:
             checkpoint.script_data = data
+        elif stage == PipelineStage.ENGAGEMENT_GENERATED:
+            checkpoint.engagement_data = data
         elif stage == PipelineStage.AUDIO_GENERATED:
             checkpoint.audio_data = data
         elif stage == PipelineStage.VISUALS_GENERATED:
@@ -277,6 +281,7 @@ class CheckpointManager:
             PipelineStage.INITIALIZED,
             PipelineStage.STORY_FOUND,
             PipelineStage.SCRIPT_GENERATED,
+            PipelineStage.ENGAGEMENT_GENERATED,
             PipelineStage.AUDIO_GENERATED,
             PipelineStage.VISUALS_GENERATED,
             PipelineStage.VIDEO_ASSEMBLED,
