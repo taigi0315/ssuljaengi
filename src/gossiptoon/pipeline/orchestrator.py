@@ -243,7 +243,11 @@ class PipelineOrchestrator:
                 logger.info("Stage 5: Assembling video...")
                 if not visual_project or not audio_project:
                     raise GossipToonException("Visual/Audio projects not available for video assembly")
-                video_project = await self._run_video_assembler(visual_project, audio_project)
+                video_project = await self._run_video_assembler(
+                    visual_project, 
+                    audio_project,
+                    engagement_project  # Pass engagement hooks
+                )
                 completed_stages.append(PipelineStage.VIDEO_ASSEMBLED)
                 self.checkpoint_manager.save_checkpoint(
                     project_id,
@@ -470,17 +474,23 @@ class PipelineOrchestrator:
         self,
         visual_project: VisualProject,
         audio_project: AudioProject,
+        engagement_project=None,  # Optional EngagementProject
     ) -> VideoProject:
         """Run video assembler stage.
 
         Args:
             visual_project: Visual project
             audio_project: Audio project
+            engagement_project: Optional engagement hooks
 
         Returns:
             VideoProject object
         """
-        video_project = await self.video_assembler.assemble_video(visual_project, audio_project)
+        video_project = await self.video_assembler.assemble_video(
+            visual_project, 
+            audio_project,
+            engagement_project=engagement_project
+        )
         logger.info(f"Video assembled: {video_project.output_path}")
         return video_project
 
