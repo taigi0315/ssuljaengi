@@ -510,7 +510,13 @@ async def _discover_stories(
 
         console.print(table)
         console.print(f"\n[dim]Total discovered: {len(stories)} stories[/dim]")
-        console.print("[dim]Use 'gossiptoon run <url>' to generate video[/dim]")
+        
+        # Display URLs for easy copy-paste
+        console.print("\n[bold cyan]📎 Story URLs:[/bold cyan]")
+        for i, story in enumerate(stories[:limit], 1):
+            console.print(f"  [cyan]{i}.[/cyan] {story.url}")
+        
+        console.print("\n[dim]Use 'gossiptoon run <url>' to generate video[/dim]")
 
     except Exception as e:
         console.print(f"[bold red]✗ Discovery failed:[/bold red] {e}")
