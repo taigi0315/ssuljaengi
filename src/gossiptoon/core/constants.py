@@ -49,6 +49,8 @@ class EmotionTone(str, Enum):
     NEUTRAL = "neutral"
     SUSPENSEFUL = "suspenseful"
     SARCASTIC = "sarcastic"
+    FRUSTRATED = "frustrated"  # NEW
+    DETERMINED = "determined"  # NEW
 
 class ActType(str, Enum):
     """Five-act structure for video scripts."""
