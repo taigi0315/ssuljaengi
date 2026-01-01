@@ -77,9 +77,12 @@ to maximize viewer engagement (comments, shares, retention).
         Returns:
             EngagementProject with 2-3 strategic hooks
         """
-        logger.info("Generating engagement hooks...")
+        logger.info("="*60)
+        logger.info("ENGAGEMENT WRITER: Starting engagement hook generation")
+        logger.info(f"Script has {len(script.acts)} acts, {script.get_scene_count()} scenes")
 
         # Build prompt
+        logger.info("ENGAGEMENT WRITER: Building prompt template...")
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", self.SYSTEM_PROMPT),
@@ -89,17 +92,26 @@ to maximize viewer engagement (comments, shares, retention).
                 ),
             ]
         )
+        logger.info("ENGAGEMENT WRITER: Prompt template created")
 
         # Create chain
+        logger.info("ENGAGEMENT WRITER: Creating LangChain chain (Gemini 2.0 Flash)...")
         chain = prompt | self.llm | self.parser
+        logger.info("ENGAGEMENT WRITER: Chain created, preparing to call Gemini API...")
 
         # Execute
-        engagement_project = await chain.ainvoke(
-            {
-                "script_summary": self._format_script_summary(script),
-                "format_instructions": self.parser.get_format_instructions(),
-            }
-        )
+        try:
+            logger.info("ENGAGEMENT WRITER: Calling Gemini API for engagement hooks...")
+            engagement_project = await chain.ainvoke(
+                {
+                    "script_summary": self._format_script_summary(script),
+                    "format_instructions": self.parser.get_format_instructions(),
+                }
+            )
+            logger.info("ENGAGEMENT WRITER: Gemini API call successful!")
+        except Exception as e:
+            logger.error(f"ENGAGEMENT WRITER: Gemini API call failed: {type(e).__name__}: {e}")
+            raise
 
         logger.info(
             f"Generated {len(engagement_project.hooks)} engagement hooks: "

@@ -201,16 +201,21 @@ class PipelineOrchestrator:
             # Stage 2.5: Engagement Hook Generation (NEW)
             engagement_project = None
             if self._should_run_stage(start_stage, PipelineStage.ENGAGEMENT_GENERATED):
+                logger.info("="*60)
                 logger.info("Stage 2.5: Generating engagement hooks...")
+                logger.info("="*60)
                 if not script:
                     raise GossipToonException("Script not available for engagement generation")
+                logger.info(f"Calling EngagementWriter with script: {script.get_scene_count()} scenes")
                 engagement_project = await self._run_engagement_writer(script)
+                logger.info(f"EngagementWriter completed successfully!")
                 completed_stages.append(PipelineStage.ENGAGEMENT_GENERATED)
                 self.checkpoint_manager.save_checkpoint(
                     project_id,
                     PipelineStage.ENGAGEMENT_GENERATED,
                     {"engagement_project": engagement_project.model_dump()},
                 )
+                logger.info(f"Engagement checkpoint saved")
 
             # Stage 3: Audio Generation
             if self._should_run_stage(start_stage, PipelineStage.AUDIO_GENERATED):
