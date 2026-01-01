@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field, field_validator
 
 from gossiptoon.core.constants import (
     ACT_DURATION_RANGES,
+    MAX_SCENE_NARRATION_WORDS,
+    MAX_SCRIPT_DURATION,
+    MIN_SCRIPT_DURATION,
     ActType,
     CameraEffect,
     EmotionTone,
