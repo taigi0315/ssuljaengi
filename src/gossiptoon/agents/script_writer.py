@@ -124,8 +124,6 @@ Your task is to convert stories into fast-paced, 40-second viral scripts.
 5. Assign emotion tones that match the dramatic intensity
 6. Estimate realistic scene durations (consider TTS pacing)
 
-{format_instructions}
-
 Output the complete script as valid JSON following the Schema exactly."""
 
     def __init__(self, config: ConfigManager) -> None:
