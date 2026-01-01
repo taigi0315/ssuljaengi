@@ -401,7 +401,7 @@ class PipelineOrchestrator:
         if sfx_list:
             logger.info(f"Applying {len(sfx_list)} SFX overlays to master audio...")
             
-            mixer = AudioSFXMixer(sfx_volume=0.3)  # 30% volume for background effect
+            mixer = AudioSFXMixer(sfx_volume=0.5)  # 50% volume - balanced with narration
             master_audio_path = audio_project.master_audio_path
             
             # Create mixed audio with all SFX
