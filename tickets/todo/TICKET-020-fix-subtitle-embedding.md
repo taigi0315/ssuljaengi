@@ -13,15 +13,46 @@ User reports that subtitles (narration captions) are not visible in the generate
 
 - [x] ASS file exists: `outputs/project_20251231_230509/videos/shorts_condo_betrayal_001_captions.ass`
 - [x] ASS content is valid (100 dialogue lines with proper formatting)
-- [ ] Check FFmpeg command used for video assembly
-- [ ] Verify subtitle stream is embedded in output MP4
-- [ ] Test playback in multiple players (QuickTime, VLC, Browser)
+- [x] Check FFmpeg command used for video assembly
+- [x] Verify subtitle stream is embedded in output MP4
+- [ ] Test playback in multiple players (QuickTime, VLC, Browser) - **Pending E2E test**
 
 ## Root Cause Analysis
 
-**Hypothesis 1**: Subtitles are soft-embedded but player doesn't support ASS
-**Hypothesis 2**: FFmpeg filter not applied correctly
-**Hypothesis 3**: Subtitle track missing from output file
+**Confirmed**: FFmpeg filter chain was broken. Multiple `-vf` options overwrote each other.
+
+**Original Bug**:
+
+```python
+for subtitle_file in subtitle_filters:
+    command.output_options.extend(["-vf", f"subtitles={subtitle_file}"])
+    # Second -vf overwrites the first!
+```
+
+**Fix Applied**:
+
+```python
+combined_filter = ",".join(subtitle_filters)
+command.output_options.extend(["-vf", combined_filter])
+# Now both subtitles are chained properly
+```
+
+## Implementation Status
+
+- [x] **Root cause identified**: Multiple `-vf` options overwriting
+- [x] **Fix implemented**: Chain filters with comma separator
+- [x] **Code committed**: `30a03ce` - "fix(video): properly chain subtitle filters"
+- [x] **Import cleanup**: Fixed EffectType → CameraEffect migration
+- [ ] **E2E test**: Awaiting full pipeline test with all 3 tickets
+
+## Testing Plan (Post-Implementation)
+
+After TICKET-018 and TICKET-019 are complete:
+
+1. Generate new test video with all features
+2. Verify subtitles visible in QuickTime
+3. Verify subtitles visible in VLC
+4. Verify engagement overlays (if enabled)
 
 ## Solution Options
 
