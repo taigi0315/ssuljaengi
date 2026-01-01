@@ -155,7 +155,7 @@ Each scene must have:
 - Maintain webtoon aesthetic (vibrant, expressive, dramatic)
 """
 
-    USER_PROMPT_TEMPLATE = """Convert this Reddit story into a high-tempo YouTube Short:
+    USER_PROMPT_TEMPLATE = """Convert this Reddit story into a Korean Webtoon-style YouTube Short:
 
 **Story Title:** {title}
 
@@ -165,16 +165,49 @@ Each scene must have:
 **Story Category:** {category}
 
 **Instructions:**
-1. Read the entire story and identify the key dramatic beats
-2. Structure into exactly 5 acts. **Act 1 MUST be a Flash Forward/Cold Open to the Climax.**
-3. For each act, create 1-3 scenes with punchy narration
-4. Ensure visual descriptions are vivid and specific for image generation
-5. Assign emotion tones that match the dramatic intensity
-6. Estimate realistic scene durations (consider TTS pacing)
+1. **Identify 2-5 main characters** from the story (give them names if not provided)
+2. **Assign realistic genders** to each character based on context (male/female)
+3. **Transform narration into CHARACTER DIALOGUE** whenever possible
+   - Use conversations instead of descriptions
+   - Create confrontations and emotional exchanges
+   - Show, don't tell through dialogue
+4. **Structure into exactly 5 acts** following the webtoon style
+5. **For each scene, create audio_chunks:**
+   - Start with narration chunk for scene-setting (if needed)
+   - Add dialogue chunks for character conversations
+   - Include internal monologue chunks for thoughts
+   - Each chunk MAX 30 words
+6. **Add detailed director_notes** for each chunk:
+   - Describe the emotional delivery
+   - Specify voice characteristics
+   - Include context for TTS styling
+   - Examples: "a betrayed friend confronting someone, voice cracking with emotion"
+7. **Specify bubble positions** for dialogue to avoid overlap:
+   - Use: top-left, top-right, center, bottom-left, bottom-right
+   - Vary positions for visual interest
+8. **Create panel_layout** descriptions in Korean webtoon style:
+   - Describe character positions and expressions
+   - Include dramatic lighting/shadows
+   - Specify camera angles
+9. **Generate bubble_metadata** for all dialogue chunks
+
+**Output Format:**
+Generate scenes with this structure:
+- audio_chunks: List of AudioChunk objects (narration/dialogue/internal)
+- panel_layout: Korean webtoon panel description
+- bubble_metadata: List of BubbleMetadata objects matching dialogue
+- visual_description: Vivid scene description for image generation
+- characters_present: List of character names in this scene
+- emotion: Overall scene emotion
+- estimated_duration_seconds: Realistic duration
 
 {format_instructions}
 
-Output the draft script. Focus on creativity. Formatting will be handled by the editor."""
+**Remember:** 
+- Prioritize DIALOGUE over narration
+- Make conversations feel natural and engaging
+- Use director_notes to add emotional depth
+- Create a visually dynamic webtoon experience!"""
 
     MAX_SCENES = 15
     MIN_SCENES = 12
@@ -296,8 +329,8 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
         # Validate character consistency
         self._validate_characters(script)
 
-        # Check narration lengths
-        self._validate_narration_lengths(script)
+        # Check audio chunks (supports both webtoon and legacy)
+        self._validate_audio_chunks(script)
 
         # Backfill scene.act from parent Act if missing (Gemini optimization)
         for act in script.acts:
@@ -375,23 +408,54 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
 
         if len(characters) > 5:
             logger.warning(
-                f"Script has {len(characters)} characters (recommended max 5 for visual consistency)"
+        f"Script has {len(characters)} characters (recommended max 5 for visual consistency)"
             )
 
         logger.info(f"Script characters: {', '.join(characters)}")
 
-    def _validate_narration_lengths(self, script: Script) -> None:
-        """Validate narration lengths are appropriate for shorts.
-
+    def _validate_audio_chunks(self, script: Script) -> None:
+        """Validate audio chunks in webtoon-style scenes or narration in legacy scenes.
+        
         Args:
             script: Script to validate
         """
         for scene in script.get_all_scenes():
-            word_count = len(scene.narration.split())
-            if word_count > 50:
-                logger.warning(
-                    f"Scene {scene.scene_id} narration is long ({word_count} words, max 50)"
-                )
+            # Check if webtoon-style
+            if hasattr(scene, "is_webtoon_style") and scene.is_webtoon_style():
+                if not scene.audio_chunks:
+                    logger.warning(f"Webtoon scene {scene.scene_id} has no audio_chunks")
+                    continue
+                
+                # Validate chunk text lengths
+                for chunk in scene.audio_chunks:
+                    word_count = len(chunk.text.split())
+                    if word_count > 30:
+                        logger.warning(
+                            f"Chunk {chunk.chunk_id} text is long ({word_count} words, max 30)"
+                        )
+                    
+                    # Validate director_notes
+                    if len(chunk.director_notes) < 10:
+                        logger.warning(
+                            f"Chunk {chunk.chunk_id} has short director_notes ({len(chunk.director_notes)} chars, min 10)"
+                        )
+                
+                # Validate bubble_metadata matches dialogue chunks
+                if hasattr(scene, "get_dialogue_chunks"):
+                    dialogue_chunks = scene.get_dialogue_chunks()
+                    if len(scene.bubble_metadata) != len(dialogue_chunks):
+                        logger.warning(
+                            f"Scene {scene.scene_id}: bubble_metadata count ({len(scene.bubble_metadata)}) "
+                            f"doesn't match dialogue chunks ({len(dialogue_chunks)})"
+                        )
+            else:
+                # Legacy validation
+                if scene.narration:
+                    word_count = len(scene.narration.split())
+                    if word_count > 50:
+                        logger.warning(
+                            f"Scene {scene.scene_id} narration is long ({word_count} words, max 50)"
+                        )
 
     def _save_script(self, script: Script) -> None:
         """Save script to output directory.
