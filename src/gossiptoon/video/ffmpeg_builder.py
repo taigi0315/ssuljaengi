@@ -113,6 +113,8 @@ class FFmpegBuilder:
         segments: list[VideoSegment],
         master_audio: Path,
         output_file: Path,
+        subtitles_path: Optional[Path] = None,
+        engagement_overlay: Optional[Path] = None,
         **options: Any,
     ) -> FFmpegCommand:
         """Build complete video assembly command.
@@ -148,6 +150,19 @@ class FFmpegBuilder:
             output_options=output_options,
             output_file=output_file,
         )
+        
+        # Add subtitle filters if provided
+        subtitle_filters = []
+        if options.get("subtitles_path"):
+            subtitle_filters.append(str(options["subtitles_path"]).replace(":", "\\\\:"))
+        if engagement_overlay:
+            subtitle_filters.append(str(engagement_overlay).replace(":", "\\\\:"))
+        
+        if subtitle_filters:
+            # Apply both subtitle files using subtitles filter
+            for i, subtitle_file in enumerate(subtitle_filters):
+                # Add to output options
+                command.output_options.extend(["-vf", f"subtitles={subtitle_file}"])
 
         logger.info(f"FFmpeg command: {command.to_string()}")
 

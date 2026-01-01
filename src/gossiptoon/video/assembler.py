@@ -53,12 +53,14 @@ class VideoAssembler:
         self,
         visual_project: VisualProject,
         audio_project: AudioProject,
+        engagement_project=None,  # Optional EngagementProject
     ) -> VideoProject:
         """Assemble complete video from visual and audio assets.
 
         Args:
             visual_project: Visual project with images
             audio_project: Audio project with master audio and timestamps
+            engagement_project: Optional engagement hooks to render
 
         Returns:
             VideoProject with rendered video
@@ -82,6 +84,24 @@ class VideoAssembler:
                 visual_project.script_id,
             )
 
+        # Generate engagement overlay if provided
+        engagement_overlay_file = None
+        if engagement_project:
+            from gossiptoon.video.engagement_overlay import EngagementOverlayGenerator
+            
+            generator = EngagementOverlayGenerator()
+            overlay_path = self.config.videos_dir / f"{visual_project.script_id}_engagement.ass"
+            
+            engagement_overlay_file = generator.generate_ass_file(
+                engagement_project=engagement_project,
+                script=visual_project.script,  # Need to pass script
+                audio_project=audio_project,
+                output_path=overlay_path,
+                video_width=self.config.video.resolution[0],
+                video_height=self.config.video.resolution[1],
+            )
+            logger.info(f"Generated engagement overlay: {engagement_overlay_file}")
+
         # Build FFmpeg command
         output_file = self.config.videos_dir / f"{visual_project.script_id}.mp4"
 
@@ -90,6 +110,7 @@ class VideoAssembler:
             master_audio=audio_project.master_audio_path,
             output_file=output_file,
             subtitles_path=subtitle_file,
+            engagement_overlay=engagement_overlay_file,  # NEW
         )
 
         # Execute FFmpeg
