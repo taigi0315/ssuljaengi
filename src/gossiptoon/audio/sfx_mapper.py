@@ -30,7 +30,7 @@ class SFXMapper:
         "GRAB": "action/grab.mp3",
         "GRIP": "action/grip.mp3",
         "CLENCH": "action/clench.mp3",
-        "CRUSH": "action/squeeze.mp3",  # Note: using squeeze as placeholder
+        "CRUSH": "action/crush.mp3",
         
         # Impact/Presence (충격, 존재감)
         "BAM!": "impact/bam.mp3",
