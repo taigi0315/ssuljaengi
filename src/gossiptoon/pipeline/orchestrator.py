@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from gossiptoon.agents.engagement_writer import EngagementWriter
 from gossiptoon.agents.script_writer import ScriptWriterAgent
 from gossiptoon.agents.story_finder import StoryFinderAgent
 from gossiptoon.audio.generator import AudioGenerator
@@ -87,6 +88,7 @@ class PipelineOrchestrator:
         # Initialize components
         self.story_finder = StoryFinderAgent(config)
         self.script_writer = ScriptWriterAgent(config)
+        self.engagement_writer = EngagementWriter()  # NEW
         self.audio_generator = AudioGenerator(config)
         self.visual_director = VisualDirector(config)
         self.video_assembler = VideoAssembler(config)
@@ -194,6 +196,20 @@ class PipelineOrchestrator:
                     project_id,
                     PipelineStage.SCRIPT_GENERATED,
                     {"script": script.model_dump()},
+                )
+
+            # Stage 2.5: Engagement Hook Generation (NEW)
+            engagement_project = None
+            if self._should_run_stage(start_stage, PipelineStage.ENGAGEMENT_GENERATED):
+                logger.info("Stage 2.5: Generating engagement hooks...")
+                if not script:
+                    raise GossipToonException("Script not available for engagement generation")
+                engagement_project = await self._run_engagement_writer(script)
+                completed_stages.append(PipelineStage.ENGAGEMENT_GENERATED)
+                self.checkpoint_manager.save_checkpoint(
+                    project_id,
+                    PipelineStage.ENGAGEMENT_GENERATED,
+                    {"engagement_project": engagement_project.model_dump()},
                 )
 
             # Stage 3: Audio Generation
@@ -344,6 +360,24 @@ class PipelineOrchestrator:
         script = await self.script_writer.write_script(story)
         logger.info(f"Script generated: {len(script.acts)} acts, {script.get_scene_count()} scenes")
         return script
+
+    async def _run_engagement_writer(self, script: Script):
+        """Run engagement writer stage.
+
+        Args:
+            script: Script object
+
+        Returns:
+            EngagementProject object
+        """
+        from gossiptoon.models.engagement import EngagementProject
+
+        engagement_project = await self.engagement_writer.generate_engagement_hooks(script)
+        logger.info(
+            f"Engagement hooks generated: {len(engagement_project.hooks)} hooks - "
+            f"{[h.hook_id for h in engagement_project.hooks]}"
+        )
+        return engagement_project
 
     async def _run_audio_generator(self, script: Script) -> AudioProject:
         """Run audio generator stage.
