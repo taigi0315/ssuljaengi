@@ -95,6 +95,68 @@ def validate(config: Optional[str]):
 
 @cli.command()
 @click.option(
+    "--subreddits",
+    "-s",
+    default="AmItheAsshole,tifu,relationship_advice",
+    help="Comma-separated list of subreddits"
+)
+@click.option(
+    "--time-filter",
+    "-t",
+    type=click.Choice(["hour", "day", "week", "month", "year", "all"]),
+    default="week",
+    help="Time filter for top posts"
+)
+@click.option(
+    "--limit",
+    "-l",
+    default=10,
+    type=int,
+    help="Number of stories to discover"
+)
+@click.option(
+    "--min-upvotes",
+    default=1000,
+    type=int,
+    help="Minimum upvote threshold"
+)
+@click.option(
+    "--min-comments",
+    default=100,
+    type=int,
+    help="Minimum comment count"
+)
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True),
+    help="Path to config file",
+)
+def discover(
+    subreddits: str,
+    time_filter: str,
+    limit: int,
+    min_upvotes: int,
+    min_comments: int,
+    config: Optional[str],
+):
+    """Discover viral Reddit stories automatically.
+
+    Example:
+        gossiptoon discover --subreddits AITA,TIFU --limit 10
+    """
+    asyncio.run(_discover_stories(
+        subreddits=subreddits.split(","),
+        time_filter=time_filter,
+        limit=limit,
+        min_upvotes=min_upvotes,
+        min_comments=min_comments,
+        config_path=config,
+    ))
+
+
+@cli.command()
+@click.option(
     "--config",
     "-c",
     type=click.Path(exists=True),
