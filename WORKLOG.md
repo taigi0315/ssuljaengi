@@ -109,6 +109,7 @@ This document records the narrative of changes for the Ssuljaengi project.
   - **Status**: All code 100% complete. Awaiting Gemini quota reset for full E2E test.
 
 - **2025-12-31 (Success - 11:05 PM)**: Full E2E test successful with new API key.
+
   - **Resolution**: User renewed Gemini API key, quota issue resolved.
   - **Result**: Generated 52.3-second video successfully.
   - **Additional Fixes**: Added `relieved` emotion and `LOOM` camera effect based on Gemini output.
@@ -118,3 +119,20 @@ This document records the narrative of changes for the Ssuljaengi project.
     - ✅ EngagementWriter re-enabled with gemini-2.0-flash-exp
     - ✅ Engagement overlay rendering ready
   - **Status**: Production ready. All code complete and tested.
+
+- **2025-12-31 (Ticket Sprint - 11:30 PM)**: Completed 3 tickets for next release.
+  - **TICKET-020 (Subtitle Fix)**:
+    - Fixed FFmpeg filter chain bug (multiple `-vf` overwrote each other)
+    - Subtitles now properly hard-burned into video
+    - Code complete, awaiting E2E test
+  - **TICKET-018 (Reddit Auto-Crawler)**:
+    - Implemented `RedditCrawler` class with viral scoring algorithm
+    - Added `gossiptoon discover` CLI command
+    - Successfully tested: discovered 10 stories in ~15 seconds
+    - Features: multi-subreddit, time filters, viral score ranking
+  - **TICKET-019 (Batch Processing)**:
+    - Created `BatchProcessor` for sequential video generation
+    - Supports error handling and progress tracking
+    - CLI integration pending (next session)
+  - **Additional**: Fixed EffectType → CameraEffect migration (added LOOM, relieved emotions)
+  - **Status**: 3 tickets 90% complete. E2E test scheduled after CLI integration.
