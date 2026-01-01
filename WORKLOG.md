@@ -2,6 +2,41 @@
 
 This document records the narrative of changes for the Ssuljaengi project.
 
+## [2026-01-01] Sprint 3: Webtoon ScriptWriter Enhancement (Phase 2-4)
+
+- **Action**: Updated ScriptWriter and ScriptEvaluator to generate webtoon-style scripts with multi-character dialogue
+- **Components Modified**:
+  - `src/gossiptoon/agents/script_writer.py`
+  - `src/gossiptoon/agents/script_evaluator.py`
+- **Changes**:
+  - **Phase 2: USER_PROMPT_TEMPLATE Update**
+    - Converted prompt to explicitly request Korean Webtoon-style output
+    - Added character identification instructions (2-5 characters)
+    - Added gender assignment guidelines (male/female for voice selection)
+    - Added dialogue transformation rules (show don't tell through conversations)
+    - Specified audio_chunks, director_notes, and bubble_metadata requirements
+    - Emphasized natural, engaging dialogue over narration
+  - **Phase 3: ScriptEvaluator Enhancement**
+    - Updated SYSTEM_PROMPT to handle webtoon format validation
+    - Added audio_chunks validation rules (chunk_id, chunk_type, speaker_id, text, director_notes)
+    - Added dialogue chunk requirements (bubble_position, bubble_style)
+    - Added bubble_metadata matching validation
+    - Maintained backward compatibility with legacy narration format
+    - Added character consistency validation across scenes
+  - **Phase 4: Validation Methods**
+    - Replaced `_validate_narration_lengths()` with `_validate_audio_chunks()`
+    - Added chunk text length validation (max 30 words per chunk)
+    - Added director_notes validation (min 10 characters)
+    - Added bubble_metadata count matching with dialogue chunks
+    - Implemented dual-mode support (webtoon + legacy)
+    - Added hasattr checks for backward compatibility
+- **Documentation**:
+  - Created `docs/WEBTOON_ENGINE.md` - comprehensive architecture documentation
+  - Covers all 3 sprints, data models, pipelines, configuration, usage examples
+  - Includes architecture diagrams, troubleshooting, and migration guide
+- **Verification**: Code formatted with black, commits created
+- **Next Steps**: Phase 5 (readable output), Phase 6 (configuration), Phase 7 (testing), Phase 8 (documentation)
+
 ## [2025-12-31] Workflow Initialization
 
 - **Action**: Adopted new Agent Behavior Guidelines (`agent/rule.md`) and Workflow (`agent/workflow.md`).
@@ -248,6 +283,7 @@ This document records the narrative of changes for the Ssuljaengi project.
   - **Objective**: Enable chunk-level TTS generation for multi-character dialogue with precise timing synchronization.
 
   - **Phase 1: Chunk-Level Audio Generation**:
+
     - **New Method**: `_generate_chunk_audio()` - Generates audio for individual AudioChunk
       - Accepts `audio_chunk`, `scene_id`, `global_offset` parameters
       - Uses `director_notes` as `style_instruction` for Google TTS
@@ -265,12 +301,14 @@ This document records the narrative of changes for the Ssuljaengi project.
       - Returns list of AudioSegments with cumulative offset
 
   - **Phase 2: Master Clock Implementation**:
+
     - **Timeline Tracking**: Added `current_offset` variable to track global timeline
     - **Offset Calculation**: Each chunk's `global_offset` = previous chunk's end time
     - **Precision**: Ensures exact timing for chat bubble synchronization
     - **Backward Compatible**: Legacy scenes also get `global_offset` assigned
 
   - **Phase 3: AudioGenerator Refactor**:
+
     - **Hybrid Support**: `generate_audio_project()` now supports both:
       - Legacy narration-based scenes (single audio per scene)
       - Webtoon-style scenes (fragmented audio chunks)
@@ -279,9 +317,11 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Logging**: Enhanced logging for chunk-level generation and voice selection
 
   - **Files Modified**:
+
     - `src/gossiptoon/audio/generator.py` - Added 157 lines for chunk-level generation
 
   - **Testing**:
+
     - ✅ AudioGenerator imports successfully
     - ✅ New methods available and functional
     - ✅ Master Clock support verified
