@@ -434,6 +434,91 @@ def _display_error(result):
     console.print("\n")
 
 
+async def _discover_stories(
+    subreddits: list[str],
+    time_filter: str,
+    limit: int,
+    min_upvotes: int,
+    min_comments: int,
+    config_path: Optional[str] = None,
+):
+    """Discover viral stories from Reddit."""
+    from gossiptoon.scrapers.reddit_crawler import RedditCrawler
+
+    try:
+        # Load config
+        config = _load_config(config_path)
+
+        # Display header
+        console.print(
+            Panel.fit(
+                "[bold magenta]Reddit Story Discovery[/bold magenta]\n"
+                f"[dim]Subreddits: {', '.join(['r/' + s for s in subreddits])}[/dim]\n"
+                f"[dim]Time filter: {time_filter} | Limit: {limit}[/dim]",
+                border_style="magenta",
+            )
+        )
+
+        # Initialize crawler
+        crawler = RedditCrawler(
+            client_id=config.reddit.client_id,
+            client_secret=config.reddit.client_secret,
+            user_agent=config.reddit.user_agent,
+        )
+
+        # Discover stories
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+        ) as progress:
+            task = progress.add_task("Discovering stories...", total=None)
+            stories = await crawler.discover_stories(
+                subreddits=subreddits,
+                time_filter=time_filter,
+                limit=limit,
+                min_upvotes=min_upvotes,
+                min_comments=min_comments,
+            )
+
+        # Display results
+        if not stories:
+            console.print("[yellow]⚠ No stories found matching criteria[/yellow]")
+            return
+
+        table = Table(title=f"Top {len(stories)} Discovered Stories", show_lines=True)
+        table.add_column("#", style="cyan", width=3)
+        table.add_column("Title", style="white", width=50)
+        table.add_column("Subreddit", style="green", width=20)
+        table.add_column("Score", style="yellow", justify="right")
+        table.add_column("Upvotes", style="magenta", justify="right")
+        table.add_column("Comments", style="blue", justify="right")
+        table.add_column("Viral Score", style="red", justify="right")
+
+        for i, story in enumerate(stories[:limit], 1):
+            # Truncate title if too long
+            title = story.title if len(story.title) <= 50 else story.title[:47] + "..."
+            
+            table.add_row(
+                str(i),
+                title,
+                f"r/{story.subreddit}",
+                f"{story.upvotes + story.num_comments:,}",
+                f"{story.upvotes:,}",
+                f"{story.num_comments:,}",
+                f"{story.viral_score:.1f}",
+            )
+
+        console.print(table)
+        console.print(f"\n[dim]Total discovered: {len(stories)} stories[/dim]")
+        console.print("[dim]Use 'gossiptoon run <url>' to generate video[/dim]")
+
+    except Exception as e:
+        console.print(f"[bold red]✗ Discovery failed:[/bold red] {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
 def main():
     """Main entry point."""
     try:
