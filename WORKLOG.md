@@ -99,6 +99,7 @@ This document records the narrative of changes for the Ssuljaengi project.
   - **Status**: All code complete (SFX 50% + EngagementWriter + Text Overlays). Gemini API testing pending.
 
 - **2025-12-31 (Late Night Debugging)**: Diagnosed API quota issues.
+
   - **Issue**: Gemini API free tier quota exhausted for all models.
   - **Root Cause**: `gemini-2.0-flash-exp`, `gemini-1.5-flash`, and image models all hit quota limits.
   - **Workaround**: Temporarily disabled EngagementWriter for pipeline testing.
@@ -106,3 +107,14 @@ This document records the narrative of changes for the Ssuljaengi project.
   - **Blocked**: Visual generation failed due to image model quota.
   - **Added**: `frustrated` and `determined` emotions to EmotionTone enum.
   - **Status**: All code 100% complete. Awaiting Gemini quota reset for full E2E test.
+
+- **2025-12-31 (Success - 11:05 PM)**: Full E2E test successful with new API key.
+  - **Resolution**: User renewed Gemini API key, quota issue resolved.
+  - **Result**: Generated 52.3-second video successfully.
+  - **Additional Fixes**: Added `relieved` emotion and `LOOM` camera effect based on Gemini output.
+  - **Final State**:
+    - ✅ All TICKET-015, 016, 017 features working
+    - ✅ SFX at 50% volume
+    - ✅ EngagementWriter re-enabled with gemini-2.0-flash-exp
+    - ✅ Engagement overlay rendering ready
+  - **Status**: Production ready. All code complete and tested.
