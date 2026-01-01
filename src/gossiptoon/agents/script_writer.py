@@ -140,11 +140,13 @@ Output the complete script as valid JSON following the Schema exactly."""
         import google.generativeai as genai
         genai.configure(api_key=config.api.google_api_key)
         
-        # Use the native Gemini model
+        # Use the native Gemini model with structured output
         self.genai_model = genai.GenerativeModel(
             model_name="models/gemini-2.5-flash",
             generation_config=genai.types.GenerationConfig(
                 temperature=0.8,
+                response_mime_type="application/json",
+                response_schema=Script,  # Enforce Pydantic schema!
             ),
         )
         self.parser = PydanticOutputParser(pydantic_object=Script)
