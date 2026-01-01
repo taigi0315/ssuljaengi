@@ -69,9 +69,56 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Integration**: Added `_overlay_audio_sfx()` method to orchestrator after audio generation.
     - **Logic**: Iterates scenes with visual_sfx, maps to audio files, calculates offsets, calls AudioSFXMixer.
     - **Testing**: Manual test with project_20251231_181426 - successfully overlaid BAM! (18.89s) and WHAM! (41.48s).
-    - **Status**: SFX system fully integrated - ready for production use.
+    - **Status**: Google TTS fully integrated. Ready for script writer agent to leverage multi-speaker and flexible styling.
 
-- **2025-12-31**: Engagement system and volume tuning.
+- **2026-01-01 (Webtoon Engine Refactor - Sprint 1)**: Data Model Foundation for multi-character dialogue.
+
+  - **Objective**: Transform GossipToon from simple narration to Korean Webtoon-style shorts with multi-character dialogue, chat bubbles, and fragmented audio.
+
+  - **Phase 1: New Data Models**:
+
+    - **AudioChunkType Enum**: Added `NARRATION`, `DIALOGUE`, `INTERNAL` types for different audio content.
+    - **AudioChunk Model**: Created model for individual audio fragments with:
+      - `speaker_id` and `speaker_gender` for voice selection
+      - `director_notes` for custom TTS style instructions
+      - `bubble_position` and `bubble_style` for chat bubble rendering
+    - **BubbleMetadata Model**: Created model for chat bubble overlays with:
+      - Position (`top-left`, `top-right`, `center`, etc.)
+      - Style (`speech`, `thought`, `shout`, `whisper`)
+      - Timing (`timestamp_start`, `timestamp_end`) for Master Clock sync
+
+  - **Phase 2: Scene Model Enhancement**:
+
+    - **Backward Compatible**: Made `narration` field optional
+    - **New Fields**:
+      - `audio_chunks`: List of AudioChunk for multi-character dialogue
+      - `panel_layout`: Korean webtoon panel description
+      - `bubble_metadata`: List of BubbleMetadata for chat bubbles
+    - **Validation**: Added `model_post_init` to ensure either `narration` or `audio_chunks` is present
+    - **Helper Methods**:
+      - `is_webtoon_style()`: Check if scene uses new dialogue system
+      - `get_all_speakers()`: Get unique speakers in scene
+      - `get_dialogue_chunks()`: Filter dialogue-only chunks
+
+  - **Phase 3: AudioSegment Enhancement**:
+
+    - **Master Clock Support**: Added `global_offset` field for timeline positioning
+    - **Chunk Reference**: Added `chunk_id` field for fragmented audio tracking
+    - **Multi-Provider**: Updated `voice_id` description to support both ElevenLabs and Google TTS
+
+  - **Files Modified**:
+
+    - `src/gossiptoon/models/audio.py` - Added AudioChunk, BubbleMetadata, AudioChunkType
+    - `src/gossiptoon/models/script.py` - Enhanced Scene model with webtoon support
+
+  - **Testing**:
+
+    - ✅ All models import successfully
+    - ✅ AudioChunk creation validated
+    - ✅ BubbleMetadata creation validated
+    - ✅ Backward compatibility maintained (legacy narration still works)
+
+  - **Next Steps (Sprint 2)**: Refactor AudioGenerator for chunk-level TTS generation with Master Clock.
 
   - **Fix**: SFX Volume Adjustment (TICKET-015).
     - **Issue**: Initial 30% too quiet based on user feedback.
