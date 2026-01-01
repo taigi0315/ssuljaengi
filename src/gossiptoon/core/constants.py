@@ -49,8 +49,9 @@ class EmotionTone(str, Enum):
     NEUTRAL = "neutral"
     SUSPENSEFUL = "suspenseful"
     SARCASTIC = "sarcastic"
-    FRUSTRATED = "frustrated"  # NEW
-    DETERMINED = "determined"  # NEW
+    FRUSTRATED = "frustrated"
+    DETERMINED = "determined"
+    RELIEVED = "relieved"  # NEW
 
 class ActType(str, Enum):
     """Five-act structure for video scripts."""
@@ -87,6 +88,21 @@ class EffectType(str, Enum):
     CAPTION = "caption"
     
     # Camera movements
+    # ZOOM_IN = "zoom_in"
+    # ZOOM_OUT = "zoom_out"
+    # PAN_LEFT = "pan_left"
+    # PAN_RIGHT = "pan_right"
+    # PAN_UP = "pan_up"
+    # PAN_DOWN = "pan_down"
+    # SHAKE = "shake"
+    # STATIC = "static"
+
+class CameraEffect(str, Enum):
+    """Camera effects for video scenes."""
+
+    KEN_BURNS = "ken_burns"
+    FADE_TRANSITION = "fade_transition"
+    CAPTION = "caption"
     ZOOM_IN = "zoom_in"
     ZOOM_OUT = "zoom_out"
     PAN_LEFT = "pan_left"
@@ -95,6 +111,7 @@ class EffectType(str, Enum):
     PAN_DOWN = "pan_down"
     SHAKE = "shake"
     STATIC = "static"
+    LOOM = "loom"  # NEW - dramatic forward movement
 
 
 # Act duration guidelines (in seconds) - Revised for 40s target

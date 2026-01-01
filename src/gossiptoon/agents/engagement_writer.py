@@ -62,7 +62,7 @@ to maximize viewer engagement (comments, shares, retention).
             api_key: Google API key (optional, uses env var if not provided)
         """
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",  # Changed from gemini-2.0-flash-exp (quota exceeded)
+            model="gemini-2.0-flash-exp",  # Reverted from 1.5-flash
             temperature=0.8,  # Higher for creative hooks
             google_api_key=api_key,
         )
