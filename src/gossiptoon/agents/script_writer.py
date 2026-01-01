@@ -15,6 +15,7 @@ from gossiptoon.core.exceptions import ScriptGenerationError
 from gossiptoon.models.script import Act, Scene, Script
 from gossiptoon.models.story import Story
 from gossiptoon.utils.retry import retry_with_backoff
+from gossiptoon.utils.llm_debugger import LLMDebugger
 from gossiptoon.agents.script_evaluator import ScriptEvaluator
 
 logger = logging.getLogger(__name__)
@@ -23,33 +24,139 @@ logger = logging.getLogger(__name__)
 class ScriptWriterAgent:
     """Agent for converting stories into structured 5-act video scripts."""
 
-    SYSTEM_PROMPT = """You are a master scriptwriter for YouTube Shorts.
+    SYSTEM_PROMPT = """You are a master Korean Webtoon scriptwriter for YouTube Shorts.
 
-**Task**: Write a compelling, viral 5-Act video script based on a Reddit story.
+**Task**: Write a compelling, dialogue-driven 5-Act video script based on a Reddit story.
 
-**Goal**: Maximize viewer retention through fast pacing and strong emotional engagement.
+**Goal**: Maximize viewer retention through multi-character dialogue, dramatic interactions, and emotional engagement.
 
-**Vibe**: High energy, dramatic, emotional, but SAFE for general audiences.
-- Focus on emotional reactions rather than extreme shock.
-- Use natural language.
-- Keep it punchy.
+**Style**: Korean Webtoon - vibrant, expressive, dialogue-heavy, with chat bubbles and dynamic panel compositions.
+
+**CRITICAL: Multi-Character Dialogue**
+- Transform narration into CHARACTER DIALOGUE whenever possible
+- Use 2-5 characters per story
+- Create conversations, confrontations, and emotional exchanges
+- Narrator only for scene-setting or transitions
 
 **Structure (Five Acts):**
-1. **The Hook** (0-3s): Immediate attention grabber. "Flash Forward" to the climax or a shocking statement.
-2. **Setup** (3-10s): Context and background.
-3. **Escalation** (10-20s): Tension builds.
-4. **Climax** (20-35s): Peak moment.
-5. **Resolution** (35-45s): Outcome or twist.
+1. **The Hook** (0-3s): Immediate dialogue hook or dramatic statement
+2. **Setup** (3-10s): Character introduction through dialogue
+3. **Escalation** (10-20s): Tension builds through conversation/confrontation
+4. **Climax** (20-35s): Peak emotional dialogue exchange
+5. **Resolution** (35-45s): Outcome revealed through dialogue or reflection
 
-**Output Format**:
-You can write the script in a loose JSON format or structured blocks. Focus on the CONTENT:
-- **Narrations:** MAX 30 words per scene. Concise & punchy.
-- **Visuals:** Vivid, comic-book style descriptions.
-- **Emotions:** Describe the emotion (e.g., "angry", "sad", "shocked").
-- **Camera:** Suggest camera moves (e.g., "zoom in", "pan left").
+**Scene Structure (WEBTOON STYLE):**
+Each scene must have:
+
+1. **audio_chunks** (list): Sequence of narration and dialogue
+   - chunk_type: "narration", "dialogue", or "internal"
+   - speaker_id: Character name or "Narrator"
+   - speaker_gender: "male" or "female" (for voice selection)
+   - text: What is said (MAX 30 words)
+   - director_notes: Detailed TTS style instruction
+   - bubble_position: "top-left", "top-right", "center", "bottom-left", "bottom-right"
+   - bubble_style: "speech", "thought", "shout", "whisper"
+
+2. **panel_layout**: Korean webtoon panel description
+   - Describe visual composition
+   - Character positions and expressions
+   - Dramatic lighting/shadows
+   - Camera angle
+
+3. **bubble_metadata**: Chat bubble overlay info
+   - Links to audio_chunk
+   - Position and style for each dialogue
+
+**Director's Notes Examples:**
+- Narration: "a mysterious narrator setting the scene in a noir film, deep and ominous"
+- Dialogue: "a betrayed friend confronting someone, voice cracking with emotion"
+- Internal: "internal monologue of regret, whispered and introspective"
+- Shout: "an angry mother yelling at her child, voice trembling with fury"
+- Whisper: "a secretive confession, barely audible, filled with shame"
+
+**Character Guidelines:**
+- Identify 2-5 main characters from the story
+- Assign realistic genders based on context
+- Give each character a distinct voice through director_notes
+- Maintain character consistency across scenes
+
+**Pacing:**
+- Hook: 0.5-3s (immediate attention grab with dialogue)
+- Build: 8-12s (character introduction, dialogue)
+- Crisis: 10-15s (conflict escalation, rapid dialogue)
+- Climax: 10-15s (peak drama, emotional dialogue)
+- Resolution: 6-10s (conclusion, reflection)
+
+**Example Scene (WEBTOON STYLE):**
+```json
+{
+  "scene_id": "crisis_01",
+  "audio_chunks": [
+    {
+      "chunk_id": "crisis_01_narrator_01",
+      "chunk_type": "narration",
+      "speaker_id": "Narrator",
+      "speaker_gender": "female",
+      "text": "The truth was about to come out.",
+      "director_notes": "a suspenseful narrator building tension, hushed and mysterious",
+      "estimated_duration": 2.5
+    },
+    {
+      "chunk_id": "crisis_01_mother_01",
+      "chunk_type": "dialogue",
+      "speaker_id": "Mother",
+      "speaker_gender": "female",
+      "text": "How could you do this to me?!",
+      "director_notes": "a betrayed mother confronting her child, voice trembling with hurt and anger",
+      "estimated_duration": 2.0,
+      "bubble_position": "top-right",
+      "bubble_style": "shout"
+    },
+    {
+      "chunk_id": "crisis_01_john_01",
+      "chunk_type": "dialogue",
+      "speaker_id": "John",
+      "speaker_gender": "male",
+      "text": "I had no choice...",
+      "director_notes": "a guilty confession with defensive undertones, avoiding eye contact",
+      "estimated_duration": 1.5,
+      "bubble_position": "bottom-left",
+      "bubble_style": "whisper"
+    }
+  ],
+  "panel_layout": "Korean webtoon panel: Close-up on Mother's shocked face, tears forming, dramatic lighting from window. John in background, head down.",
+  "bubble_metadata": [
+    {
+      "chunk_id": "crisis_01_mother_01",
+      "text": "How could you do this to me?!",
+      "position": "top-right",
+      "style": "shout",
+      "character_name": "Mother"
+    },
+    {
+      "chunk_id": "crisis_01_john_01",
+      "text": "I had no choice...",
+      "position": "bottom-left",
+      "style": "whisper",
+      "character_name": "John"
+    }
+  ],
+  "emotion": "dramatic",
+  "visual_description": "Dramatic confrontation scene in dimly lit kitchen, Mother's face showing betrayal and hurt, John looking guilty and defensive",
+  "characters_present": ["Mother", "John"],
+  "estimated_duration_seconds": 6.0
+}
+```
+
+**IMPORTANT:**
+- Prioritize DIALOGUE over narration
+- Create realistic conversations
+- Use director_notes to add emotional depth
+- Assign bubble positions to avoid overlap
+- Maintain webtoon aesthetic (vibrant, expressive, dramatic)
 """
 
-    USER_PROMPT_TEMPLATE = """Convert this Reddit story into a high-tempo YouTube Short:
+    USER_PROMPT_TEMPLATE = """Convert this Reddit story into a Korean Webtoon-style YouTube Short:
 
 **Story Title:** {title}
 
@@ -59,19 +166,110 @@ You can write the script in a loose JSON format or structured blocks. Focus on t
 **Story Category:** {category}
 
 **Instructions:**
-1. Read the entire story and identify the key dramatic beats
-2. Structure into exactly 5 acts. **Act 1 MUST be a Flash Forward/Cold Open to the Climax.**
-3. For each act, create 1-3 scenes with punchy narration
-4. Ensure visual descriptions are vivid and specific for image generation
-5. Assign emotion tones that match the dramatic intensity
-6. Estimate realistic scene durations (consider TTS pacing)
+1. **Identify 2-5 main characters** from the story (give them names if not provided)
+2. **Assign realistic genders** to each character based on context (male/female)
+3. **Transform narration into CHARACTER DIALOGUE** whenever possible
+   - Use conversations instead of descriptions
+   - Create confrontations and emotional exchanges
+   - Show, don't tell through dialogue
+4. **Structure into exactly 5 acts** following the webtoon style
+5. **For each scene, create audio_chunks:**
+   - Start with narration chunk for scene-setting (if needed)
+   - Add dialogue chunks for character conversations
+   - Include internal monologue chunks for thoughts
+   - Each chunk MAX 30 words
+6. **Add detailed director_notes** for each chunk:
+   - Describe the emotional delivery
+   - Specify voice characteristics
+   - Include context for TTS styling
+   - Examples: "a betrayed friend confronting someone, voice cracking with emotion"
+7. **Specify bubble positions** for dialogue to avoid overlap:
+   - Use: top-left, top-right, center, bottom-left, bottom-right
+   - Vary positions for visual interest
+8. **Create panel_layout** descriptions in Korean webtoon style:
+   - Describe character positions and expressions
+   - Include dramatic lighting/shadows
+   - Specify camera angles
+9. **Generate bubble_metadata** for all dialogue chunks
+
+**Output Format:**
+Generate scenes with this structure:
+- audio_chunks: List of AudioChunk objects (narration/dialogue/internal)
+- panel_layout: Korean webtoon panel description
+- bubble_metadata: List of BubbleMetadata objects matching dialogue
+- visual_description: Vivid scene description for image generation
+- characters_present: List of character names in this scene
+- emotion: Overall scene emotion
+- estimated_duration_seconds: Realistic duration
 
 {format_instructions}
 
-Output the draft script. Focus on creativity. Formatting will be handled by the editor."""
+**Remember:** 
+- Prioritize DIALOGUE over narration
+- Make conversations feel natural and engaging
+- Use director_notes to add emotional depth
+- Create a visually dynamic webtoon experience!"""
 
-    MAX_SCENES = 15
-    MIN_SCENES = 12
+    LEGACY_SYSTEM_PROMPT = """You are an expert scriptwriter for YouTube Shorts.
+
+**Task**: Write a compelling 5-Act video script based on a Reddit story.
+
+**Style**: Narrated story with minimal dialogue, focus on pacing and visual description.
+
+**Structure (Five Acts):**
+1. **The Hook** (0-3s)
+2. **Setup** (3-10s)
+3. **Escalation** (10-20s)
+4. **Climax** (20-35s)
+5. **Resolution** (35-45s)
+
+**Scene Structure:**
+Each scene must have:
+- narration: The voiceover text (MAX 50 words)
+- visual_description: Detailed description for image generation (photorealistic style)
+- emotion: Scene emotion
+- estimated_duration_seconds: Duration
+
+**Example Scene:**
+```json
+{
+  "scene_id": "scene_01",
+  "narration": "It was a dark and stormy night...",
+  "visual_description": "Dark storm clouds gathering over a spooky house",
+  "emotion": "suspenseful",
+  "estimated_duration_seconds": 3.5
+}
+```
+
+**IMPORTANT:**
+- Focus on clear, engaging narration.
+- Keep sentences short and punchy.
+"""
+
+    LEGACY_USER_PROMPT_TEMPLATE = """Convert this Reddit story into a YouTube Short script:
+
+**Story Title:** {title}
+
+**Content:**
+{content}
+
+**Category:** {category}
+
+**Instructions:**
+1. Break down the story into 5 structured acts.
+2. Write concise narration for each scene.
+3. Provide vivid visual descriptions.
+4. Keep total duration under 60 seconds.
+
+**Output Format:**
+Generate scenes with:
+- narration
+- visual_description
+- emotion
+- estimated_duration_seconds
+
+{format_instructions}
+"""
 
     def __init__(self, config: ConfigManager) -> None:
         """Initialize Script Writer Agent.
@@ -80,7 +278,7 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
             config: Configuration manager
         """
         self.config = config
-        
+
         safety_settings = {
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -89,14 +287,24 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
         }
 
         # Use LangChain's ChatGoogleGenerativeAI (Unstructured for creativity)
+        # Revert to Gemini 2.5 Flash as per WEBTOON_ENGINE.md
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
-            temperature=0.9, # High temperature for creativity
+            temperature=0.9,  # High temperature for creativity
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
         )
         self.prompt = self._create_prompt()
         self.evaluator = ScriptEvaluator(config)
+        
+        # Initialize Debugger
+        # Assumes scripts_dir is outputs/{job_id}/scripts, so parent is outputs/{job_id}
+        self.debugger = LLMDebugger(self.config.scripts_dir.parent)
+
+        # Log masked API key for verification
+        key = config.api.google_api_key
+        masked_key = f"{key[:4]}...{key[-4:]}" if key and len(key) > 8 else "INVALID"
+        logger.info(f"Initialized ScriptWriter with model=gemini-2.5-flash, key={masked_key}")
 
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create prompt template with specific constraints.
@@ -104,11 +312,24 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
         Returns:
             Chat prompt template
         """
+        # Inject config values into system prompt
+        if self.config.script.webtoon_mode:
+            system_prompt = self.SYSTEM_PROMPT.replace(
+                "MAX 30 words", 
+                f"MAX {self.config.script.max_dialogue_chars} characters"
+            )
+            # Escape braces for LangChain formatting (JSON examples)
+            system_prompt = system_prompt.replace("{", "{{").replace("}", "}}")
+            user_prompt = self.USER_PROMPT_TEMPLATE
+        else:
+            system_prompt = self.LEGACY_SYSTEM_PROMPT.replace("{", "{{").replace("}", "}}")
+            user_prompt = self.LEGACY_USER_PROMPT_TEMPLATE
+
         # Simplify Prompt - No strict enums
         return ChatPromptTemplate.from_messages(
             [
-                ("system", self.SYSTEM_PROMPT),
-                ("human", self.USER_PROMPT_TEMPLATE),
+                ("system", system_prompt),
+                ("human", user_prompt),
             ]
         )
 
@@ -133,12 +354,33 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
                 title=story.title,
                 content=story.content,
                 category=story.category.value,
-                format_instructions="", 
+                format_instructions="",
             )
-            
+
             # Step 1: Generate Creative Draft (Unstructured)
             logger.info("Generating creative draft script (unstructured)...")
-            response = await self.llm.ainvoke(messages)
+            start_time = datetime.now()
+            
+            try:
+                response = await self.llm.ainvoke(messages)
+            except Exception as inner_e:
+                logger.error(f"LLM Invoke Failed: {inner_e}")
+                raise inner_e
+
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            
+            # Log interaction
+            try:
+                self.debugger.log_interaction(
+                    agent_name="ScriptWriter",
+                    prompt=messages,
+                    response=response,
+                    metadata={"story_id": story.id, "mode": "webtoon" if self.config.script.webtoon_mode else "legacy"},
+                    duration_ms=duration_ms
+                )
+            except Exception as log_e:
+                logger.warning(f"Failed to log interaction: {log_e}")
+
             draft_content = response.content
             logger.info(f"Draft generated (length: {len(draft_content)} chars)")
 
@@ -175,7 +417,9 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
         """
         # Generate script ID if not set
         if not script.script_id or script.script_id == "string":
-            script.script_id = f"script_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{story.id.split('_')[-1]}"
+            script.script_id = (
+                f"script_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{story.id.split('_')[-1]}"
+            )
 
         # Set story ID
         if not script.story_id or script.story_id == "string":
@@ -190,8 +434,8 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
         # Validate character consistency
         self._validate_characters(script)
 
-        # Check narration lengths
-        self._validate_narration_lengths(script)
+        # Check audio chunks (supports both webtoon and legacy)
+        self._validate_audio_chunks(script)
 
         # Backfill scene.act from parent Act if missing (Gemini optimization)
         for act in script.acts:
@@ -233,9 +477,7 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
         Args:
             script: Script to validate
         """
-        total_duration = sum(
-            scene.estimated_duration_seconds for scene in script.get_all_scenes()
-        )
+        total_duration = sum(scene.estimated_duration_seconds for scene in script.get_all_scenes())
 
         if total_duration < 50:
             logger.warning(f"Script duration {total_duration}s is short (target 55-58s)")
@@ -274,18 +516,53 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
 
         logger.info(f"Script characters: {', '.join(characters)}")
 
-    def _validate_narration_lengths(self, script: Script) -> None:
-        """Validate narration lengths are appropriate for shorts.
+    def _validate_audio_chunks(self, script: Script) -> None:
+        """Validate audio chunks in webtoon-style scenes or narration in legacy scenes.
 
         Args:
             script: Script to validate
         """
         for scene in script.get_all_scenes():
-            word_count = len(scene.narration.split())
-            if word_count > 50:
-                logger.warning(
-                    f"Scene {scene.scene_id} narration is long ({word_count} words, max 50)"
-                )
+            # Check if webtoon-style
+            if hasattr(scene, "is_webtoon_style") and scene.is_webtoon_style():
+                if not scene.audio_chunks:
+                    logger.warning(f"Webtoon scene {scene.scene_id} has no audio_chunks")
+                    continue
+
+                # Validate chunk text lengths
+                for chunk in scene.audio_chunks:
+                    # Check character length based on config
+                    char_count = len(chunk.text)
+                    max_chars = self.config.script.max_dialogue_chars
+
+                    if char_count > max_chars:
+                        logger.warning(
+                            f"Chunk {chunk.chunk_id} text is long ({char_count} chars, max {max_chars})"
+                        )
+
+                    # Validate director_notes
+                    if len(chunk.director_notes) < 10:
+                        logger.warning(
+                            f"Chunk {chunk.chunk_id} has short director_notes ({len(chunk.director_notes)} chars, min 10)"
+                        )
+
+                # Validate bubble_metadata matches dialogue chunks
+                if hasattr(scene, "get_dialogue_chunks"):
+                    dialogue_chunks = scene.get_dialogue_chunks()
+                    if len(scene.bubble_metadata) != len(dialogue_chunks):
+                        logger.warning(
+                            f"Scene {scene.scene_id}: bubble_metadata count ({len(scene.bubble_metadata)}) "
+                            f"doesn't match dialogue chunks ({len(dialogue_chunks)})"
+                        )
+            else:
+                # Legacy validation
+                if scene.narration:
+                    word_count = len(scene.narration.split())
+                    max_legacy = self.config.script.max_narration_chars // 5  # Approx words
+                    if word_count > max_legacy:
+                        logger.warning(
+                            f"Scene {scene.scene_id} narration is long ({word_count} words, max {max_legacy})"
+                        )
 
     def _save_script(self, script: Script) -> None:
         """Save script to output directory.
@@ -305,7 +582,7 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
         self._save_readable_script(script, readable_path)
 
     def _save_readable_script(self, script: Script, output_path: Any) -> None:
-        """Save human-readable version of script.
+        """Save human-readable version of script (supports webtoon style).
 
         Args:
             script: Script to save
@@ -328,8 +605,39 @@ Output the draft script. Focus on creativity. Formatting will be handled by the 
                     f.write(f"Duration: {scene.estimated_duration_seconds}s\n")
                     f.write(f"Emotion: {scene.emotion.value}\n")
                     f.write(f"Characters: {', '.join(scene.characters_present)}\n\n")
-                    f.write(f"NARRATION:\n{scene.narration}\n\n")
-                    f.write(f"VISUAL:\n{scene.visual_description}\n\n")
+
+                    # Check if webtoon-style
+                    if hasattr(scene, "is_webtoon_style") and scene.is_webtoon_style():
+                        # Webtoon format
+                        if scene.panel_layout:
+                            f.write(f"PANEL LAYOUT:\n{scene.panel_layout}\n\n")
+
+                        f.write(f"AUDIO CHUNKS ({len(scene.audio_chunks)}):\n")
+                        for i, chunk in enumerate(scene.audio_chunks, 1):
+                            f.write(
+                                f"\n  [{i}] {chunk.chunk_type.value.upper()} - {chunk.speaker_id}"
+                            )
+                            if hasattr(chunk, "speaker_gender") and chunk.speaker_gender:
+                                f.write(f" ({chunk.speaker_gender})")
+                            f.write("\n")
+                            f.write(f"      Text: {chunk.text}\n")
+                            f.write(f"      Director: {chunk.director_notes}\n")
+                            if hasattr(chunk, "bubble_position") and chunk.bubble_position:
+                                f.write(
+                                    f"      Bubble: {chunk.bubble_position} ({chunk.bubble_style})\n"
+                                )
+
+                        if scene.bubble_metadata:
+                            f.write(f"\n  CHAT BUBBLES ({len(scene.bubble_metadata)}):\n")
+                            for bubble in scene.bubble_metadata:
+                                f.write(f'    - {bubble.character_name}: "{bubble.text}" ')
+                                f.write(f"[{bubble.position}, {bubble.style}]\n")
+                    else:
+                        # Legacy format
+                        if scene.narration:
+                            f.write(f"NARRATION:\n{scene.narration}\n\n")
+
+                    f.write(f"\nVISUAL:\n{scene.visual_description}\n\n")
                     f.write("-" * 40 + "\n\n")
 
         logger.info(f"Readable script saved to {output_path}")

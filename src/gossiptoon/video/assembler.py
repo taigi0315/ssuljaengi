@@ -186,54 +186,27 @@ class VideoAssembler:
                 audio_project,
             )
             
-            # Frame-Accurate Duration Calculation (DDA)
-            # 1. Update ideal audio timeline
-            total_audio_time += audio_duration
-            
+            # Calculate precise duration (DDA)
             try:
-                # 2. Calculate target frame count for this timestamp
-                target_total_frames = round(total_audio_time * fps)
-                
-                # 3. Determine frames for THIS segment
-                segment_frames = target_total_frames - total_frames
-                
-                # 4. Calculate precise duration for FFmpeg
-                # This ensures video duration exactly matches the frame count FFmpeg will generate
-                duration = segment_frames / fps
+                duration, frames, new_total_time, new_total_frames = self._calculate_segment_timing(
+                    audio_duration, total_audio_time, total_frames, fps
+                )
             except TypeError as e:
-                logger.error(f"TypeError during duration calc in segment {i}: {e}")
-                logger.error(f"total_audio_time: {type(total_audio_time)} = {total_audio_time}")
-                logger.error(f"fps: {type(fps)} = {fps}")
-                logger.error(f"audio_duration: {type(audio_duration)} = {audio_duration}")
+                logger.error(f"Timing calculation failed for segment {i}: {e}")
                 raise
-            
+
             # Update state
-            total_frames = target_total_frames
+            total_audio_time = new_total_time
+            total_frames = new_total_frames
             
             logger.info(
                 f"Segment {i}: Audio={audio_duration:.4f}s, "
-                f"Video={duration:.4f}s ({segment_frames} frames), "
+                f"Video={duration:.4f}s ({frames} frames), "
                 f"Drift={total_frames/fps - total_audio_time:.4f}s"
             )
 
-            # Create effects for this segment
-            effects = []
-
-            # 1. AI Camera Effects (Priority)
-            if self.config.video.use_ai_camera_effects and asset.camera_effect:
-                camera_effect = CameraEffect(CameraEffectConfig(
-                    enabled=True,
-                    effect_type=asset.camera_effect,
-                    intensity=0.3
-                ))
-                effects.append(camera_effect)
-            
-            # 2. Generic Ken Burns (Fallback)
-            elif self.config.video.ken_burns_enabled:
-                ken_burns_effect = self._create_ken_burns_effect(asset.scene_id)
-                effects.append(ken_burns_effect)
-
-            # Note: Captions are applied globally via subtitle file, not per-segment
+            # Create effects
+            effects = self._create_segment_effects(asset)
 
             segment = VideoSegment(
                 image_path=asset.image_path,
@@ -251,6 +224,58 @@ class VideoAssembler:
              logger.warning(f"Final AV Sync Diff: {diff:.4f}s (Should be < 1 frame)")
 
         return segments
+
+    def _calculate_segment_timing(
+        self, 
+        audio_duration: float, 
+        current_total_time: float, 
+        current_total_frames: int, 
+        fps: float
+    ) -> tuple[float, int, float, int]:
+        """Calculate frame-accurate duration for a segment (DDA algorithm).
+        
+        Args:
+            audio_duration: Duration of current audio segment
+            current_total_time: Accumulated audio time before this segment
+            current_total_frames: Accumulated frames before this segment
+            fps: Frame rate
+            
+        Returns:
+            Tuple of (segment_duration, segment_frames, new_total_time, new_total_frames)
+        """
+        # 1. Update ideal audio timeline
+        new_total_time = current_total_time + audio_duration
+        
+        # 2. Calculate target frame count for this timestamp
+        new_total_frames = round(new_total_time * fps)
+        
+        # 3. Determine frames for THIS segment
+        segment_frames = new_total_frames - current_total_frames
+        
+        # 4. Calculate precise duration for FFmpeg
+        segment_duration = segment_frames / fps
+        
+        return segment_duration, segment_frames, new_total_time, new_total_frames
+
+    def _create_segment_effects(self, asset: Any) -> list:
+        """Determines logic for applying effects to a visual asset segment."""
+        effects = []
+
+        # 1. AI Camera Effects (Priority)
+        if self.config.video.use_ai_camera_effects and asset.camera_effect:
+            camera_effect = CameraEffect(CameraEffectConfig(
+                enabled=True,
+                effect_type=asset.camera_effect,
+                intensity=0.3
+            ))
+            effects.append(camera_effect)
+        
+        # 2. Generic Ken Burns (Fallback)
+        elif self.config.video.ken_burns_enabled:
+            ken_burns_effect = self._create_ken_burns_effect(asset.scene_id)
+            effects.append(ken_burns_effect)
+            
+        return effects
 
     def _create_ken_burns_effect(self, scene_id: str) -> KenBurnsEffect:
         """Create Ken Burns effect for a scene.
