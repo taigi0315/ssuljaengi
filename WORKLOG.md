@@ -64,3 +64,8 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Methods**: `overlay_sfx()` for single SFX, `overlay_multiple_sfx()` for batch processing.
     - **Volume**: Configurable SFX volume (default 70%, -6dB adjustment).
     - **Status**: Mixing logic complete - pipeline integration pending (TICKET-014).
+  - **Feature**: Pipeline SFX Integration (TICKET-014 - Phase 3/3).
+    - **Integration**: Added `_overlay_audio_sfx()` method to orchestrator after audio generation.
+    - **Logic**: Iterates scenes with visual_sfx, maps to audio files, calculates offsets, calls AudioSFXMixer.
+    - **Testing**: Manual test with project_20251231_181426 - successfully overlaid BAM! (18.89s) and WHAM! (41.48s).
+    - **Status**: SFX system fully integrated - ready for production use.
