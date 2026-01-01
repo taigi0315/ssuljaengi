@@ -152,7 +152,7 @@ Output the complete script as valid JSON following the Schema exactly."""
         self.prompt = self._create_prompt()
 
     def _create_prompt(self) -> ChatPromptTemplate:
-        """Create prompt template with Pydantic parser.
+        """Create prompt template for structured output.
 
         Returns:
             Chat prompt template
@@ -162,7 +162,7 @@ Output the complete script as valid JSON following the Schema exactly."""
                 ("system", self.SYSTEM_PROMPT),
                 ("human", self.USER_PROMPT_TEMPLATE),
             ]
-        ).partial(format_instructions=self.parser.get_format_instructions())
+        )
 
     @retry_with_backoff(max_retries=3, exceptions=(ScriptGenerationError,))
     async def write_script(self, story: Story) -> Script:
@@ -180,31 +180,19 @@ Output the complete script as valid JSON following the Schema exactly."""
         logger.info(f"Generating script for story: {story.id}")
 
         try:
-            # Build the full prompt
-            format_instructions = self.parser.get_format_instructions()
-            user_message = self.USER_PROMPT_TEMPLATE.format(
+            # Build prompt messages
+            messages = self.prompt.format_messages(
                 title=story.title,
                 content=story.content,
                 category=story.category.value,
-                format_instructions=format_instructions,
             )
+
+            # Generate with structured output (schema enforced!)
+            logger.info("Invoking LLM with structured output...")
+            script = await self.structured_llm.ainvoke(messages)
             
-            full_prompt = f"{self.SYSTEM_PROMPT}\n\n{user_message}"
-            
-            # Generate with native Gemini API
-            response = await self.genai_model.generate_content_async(full_prompt)
-            
-            # Extract text and parse JSON
-            response_text = response.text
-            
-            # Clean up potential markdown code blocks
-            if "```json" in response_text:
-                response_text = response_text.split("```json")[1].split("```")[0]
-            elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0]
-            
-            # Parse with Pydantic
-            script = self.parser.parse(response_text)
+            # script is already a validated Script Pydantic object!
+            logger.info(f"Received structured script with {len(script.acts)} acts")
 
             # Validate and enhance script
             script = self._validate_and_enhance_script(script, story)
