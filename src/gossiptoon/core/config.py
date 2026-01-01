@@ -24,7 +24,7 @@ from gossiptoon.core.exceptions import ConfigurationError
 class APIConfig(BaseModel):
     """API configuration for external services."""
 
-    openai_api_key: str = Field(..., description="OpenAI API key")
+    openai_api_key: Optional[str] = Field(None, description="OpenAI API key (deprecated, not used)")
     google_api_key: str = Field(..., description="Google Gemini API key")
     elevenlabs_api_key: str = Field(..., description="ElevenLabs API key")
     tavily_api_key: Optional[str] = Field(None, description="Tavily search API key")
@@ -34,7 +34,7 @@ class APIConfig(BaseModel):
         default="GossipToon/0.1.0", description="Reddit user agent"
     )
 
-    @field_validator("openai_api_key", "google_api_key", "elevenlabs_api_key")
+    @field_validator("google_api_key", "elevenlabs_api_key")
     @classmethod
     def validate_required_keys(cls, v: str, info: object) -> str:
         """Validate that required API keys are not empty."""
