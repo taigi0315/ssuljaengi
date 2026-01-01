@@ -184,7 +184,7 @@ class ConfigManager:
 
         try:
             self.api = APIConfig(
-                openai_api_key=self._get_env("OPENAI_API_KEY"),
+                openai_api_key=os.getenv("OPENAI_API_KEY"),  # Optional, deprecated
                 google_api_key=self._get_env("GOOGLE_API_KEY"),
                 elevenlabs_api_key=self._get_env("ELEVENLABS_API_KEY"),
                 tavily_api_key=os.getenv("TAVILY_API_KEY"),
