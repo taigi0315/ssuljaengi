@@ -6,12 +6,8 @@ from pydantic import BaseModel, Field, field_validator
 
 from gossiptoon.core.constants import (
     ACT_DURATION_RANGES,
-    MAX_SCENE_NARRATION_WORDS,
-    MAX_SCRIPT_DURATION,
-    MAX_SCRIPT_DURATION,
-    MIN_SCRIPT_DURATION,
     ActType,
-    EffectType,
+    CameraEffect,
     EmotionTone,
 )
 
@@ -33,7 +29,7 @@ class Scene(BaseModel):
     estimated_duration_seconds: float = Field(
         ge=0.5, le=15.0, description="Estimated scene duration (shorter max for faster pacing)"
     )
-    camera_effect: Optional[EffectType] = Field(
+    camera_effect: Optional[CameraEffect] = Field(
         default=None, description="Recommended camera movement/effect for this scene"
     )
     visual_sfx: Optional[str] = Field(

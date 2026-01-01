@@ -11,14 +11,14 @@ from gossiptoon.core.constants import (
     DEFAULT_VIDEO_FPS,
     DEFAULT_VIDEO_PRESET,
     DEFAULT_VIDEO_RESOLUTION,
-    EffectType,
+    CameraEffect,
 )
 
 
 class EffectConfig(BaseModel):
     """Configuration for a video effect."""
 
-    effect_type: EffectType = Field(..., description="Type of effect")
+    effect_type: CameraEffect = Field(..., description="Type of effect")
     params: dict[str, Any] = Field(default_factory=dict, description="Effect parameters")
 
     class Config:
@@ -76,7 +76,7 @@ class TimelineSegment(BaseModel):
                 raise ValueError(f"End time ({v}) must be after start time ({start_time})")
         return v
 
-    def has_effect(self, effect_type: EffectType) -> bool:
+    def has_effect(self, effect_type: CameraEffect) -> bool:
         """Check if segment has specific effect type.
 
         Args:
@@ -87,7 +87,7 @@ class TimelineSegment(BaseModel):
         """
         return any(e.effect_type == effect_type for e in self.effects)
 
-    def get_effect(self, effect_type: EffectType) -> Optional[EffectConfig]:
+    def get_effect(self, effect_type: CameraEffect) -> Optional[EffectConfig]:
         """Get effect configuration by type.
 
         Args:
