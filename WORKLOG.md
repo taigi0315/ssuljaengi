@@ -7,6 +7,7 @@ This document records the narrative of changes for the Ssuljaengi project.
 - **Action**: Adopted new Agent Behavior Guidelines (`agent/rule.md`) and Workflow (`agent/workflow.md`).
 - **Setup**: Initialized `tickets/todo/` and `tickets/done/` directories.
 - **Previous Context**:
+
   - Resolved video duration issue (1h+ -> 30s) by adding `-shortest` flag to FFmpeg.
   - Fixed infinite effect loop by setting `d=1` in Ken Burns effect.
   - Verified output organization (`outputs/{job_id}/`).
@@ -69,3 +70,15 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Logic**: Iterates scenes with visual_sfx, maps to audio files, calculates offsets, calls AudioSFXMixer.
     - **Testing**: Manual test with project_20251231_181426 - successfully overlaid BAM! (18.89s) and WHAM! (41.48s).
     - **Status**: SFX system fully integrated - ready for production use.
+
+- **2025-12-31**: Engagement system and volume tuning.
+  - **Fix**: SFX Volume Adjustment (TICKET-015).
+    - **Issue**: Initial 30% too quiet based on user feedback.
+    - **Solution**: Adjusted to 50% for balanced mix with narration.
+    - **Result**: Audible SFX without covering voice.
+  - **Feature**: EngagementWriter Agent (TICKET-016).
+    - **Architecture**: Separate LangChain agent (not overloading ScriptWriter).
+    - **Models**: `EngagementHook` (text, scene_id, timing, style), `EngagementProject` (2-3 hooks + strategy).
+    - **Agent**: GPT-4 with temp=0.8 for creative hooks, 5 styles (question/comment/reaction/sympathy/conflict).
+    - **Pipeline**: New ENGAGEMENT_GENERATED stage between script and audio.
+    - **Status**: Backend complete - ready for TICKET-017 (text overlay rendering).
