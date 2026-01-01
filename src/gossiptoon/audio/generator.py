@@ -9,6 +9,7 @@ from typing import Optional
 from gossiptoon.audio.audio_processor import AudioProcessor
 from gossiptoon.audio.base import TTSClient
 from gossiptoon.audio.elevenlabs_client import ElevenLabsClient
+from gossiptoon.audio.google_tts_client import GoogleTTSClient
 from gossiptoon.audio.whisper import WhisperTimestampExtractor
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.core.exceptions import AudioGenerationError
@@ -34,18 +35,25 @@ class AudioGenerator:
 
         Args:
             config: Configuration manager
-            tts_client: Optional TTS client (defaults to ElevenLabs)
+            tts_client: Optional TTS client (auto-selected based on config if not provided)
         """
         self.config = config
 
-        # Use provided TTS client or default to ElevenLabs
-        self.tts_client = tts_client or ElevenLabsClient(
-            api_key=config.api.elevenlabs_api_key
-        )
+        # Auto-select TTS client based on configuration
+        if tts_client:
+            self.tts_client = tts_client
+        elif config.audio.tts_provider == "google":
+            logger.info("Using Google TTS 2.5 Flash")
+            self.tts_client = GoogleTTSClient(
+                api_key=config.api.google_api_key,
+                model=config.audio.google_tts_model,
+                default_voice=config.audio.google_tts_voice,
+            )
+        else:
+            logger.info("Using ElevenLabs TTS")
+            self.tts_client = ElevenLabsClient(api_key=config.api.elevenlabs_api_key)
 
-        self.whisper = WhisperTimestampExtractor(
-            model_name=config.audio.whisper_model
-        )
+        self.whisper = WhisperTimestampExtractor(model_name=config.audio.whisper_model)
 
         self.processor = AudioProcessor()
 
@@ -152,9 +160,7 @@ class AudioGenerator:
             timestamps=timestamps,
         )
 
-        logger.info(
-            f"Scene audio complete: {duration:.1f}s, {len(timestamps)} words"
-        )
+        logger.info(f"Scene audio complete: {duration:.1f}s, {len(timestamps)} words")
 
         return segment
 

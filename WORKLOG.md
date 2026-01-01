@@ -195,3 +195,54 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Solution**: Decoupled visual SFX from audio SFX lookup; only map if keyword exists in library.
   - **Merge**: PR #1 merged to `main` (24 files, +634/-178 lines).
   - **Result**: Full E2E pipeline successful with 10 scene images generated.
+
+- **2026-01-01 (Google TTS Integration)**: Implemented Google TTS 2.5 Flash as swappable TTS provider.
+
+  - **Phase 1: Core Implementation**:
+
+    - **Component**: Created `GoogleTTSClient` implementing `TTSClient` interface for provider swappability.
+    - **Style Mapping**: Implemented "Director" method - mapped 14 `EmotionTone` enums to natural language style directives (e.g., `DRAMATIC` → "theatrical, sweeping delivery with dramatic pauses and intensity").
+    - **Configuration**: Added `TTS_PROVIDER` config option (`elevenlabs` or `google`) with auto-selection in `AudioGenerator`.
+    - **Format**: PCM → WAV conversion (24kHz, mono, 16-bit).
+    - **Status**: Basic TTS generation working with emotion-based styling.
+
+  - **Phase 2: Multi-Speaker Support**:
+
+    - **Voice Catalog**: Added complete metadata for all 30 Google TTS prebuilt voices (14 female, 16 male).
+    - **Gender Metadata**: Each voice tagged with gender and style characteristics for character assignment.
+    - **API Methods**:
+      - `get_voices_by_gender(gender)` - Filter voices by male/female.
+      - `get_recommended_voice_for_gender(gender, index)` - Get voice for character with cycling support.
+      - `get_available_voices()` - Full metadata for all voices.
+    - **Use Case**: Script writer can now assign different voices to characters based on gender.
+    - **Status**: Multi-character story support ready.
+
+  - **Phase 3: Flexible Style Instructions**:
+
+    - **Refactor**: Removed unnecessary MP3 conversion - now outputs WAV directly.
+    - **Enhancement**: Added `style_instruction` parameter accepting custom string-based style descriptions.
+    - **Priority System**: `style_instruction` > `emotion` > plain text.
+    - **Example**: `"a dramatic dialogue from a Sci-Fi video game set inside a spaceship cockpit during a chaotic battle"`.
+    - **Methods**:
+      - `_build_emotion_styled_prompt()` - Converts EmotionTone to style directive.
+      - `_build_custom_styled_prompt()` - Uses custom style instruction.
+    - **Future Ready**: Prepared for "audio emotion script writer agent" to generate context-aware styles.
+    - **Backward Compatible**: Existing code using `emotion` parameter works without changes.
+
+  - **Documentation**:
+
+    - Created `docs/GOOGLE_TTS.md` - Main usage guide.
+    - Created `docs/GOOGLE_TTS_MULTI_SPEAKER.md` - Multi-speaker API documentation.
+    - Created `docs/GOOGLE_TTS_FLEXIBLE_STYLE.md` - Flexible style instructions guide.
+    - Updated `.env.example` with Google TTS configuration options.
+
+  - **Files Modified**:
+
+    - `src/gossiptoon/audio/google_tts_client.py` (NEW) - 439 lines
+    - `src/gossiptoon/audio/generator.py` - Auto-select TTS provider
+    - `src/gossiptoon/core/config.py` - Added TTS provider config
+    - `src/gossiptoon/core/constants.py` - Added Google TTS style directives and voice metadata
+    - `src/gossiptoon/core/exceptions.py` - Added GoogleTTSError
+    - `.env.example` - Added TTS configuration
+
+  - **Status**: Google TTS fully integrated. Ready for script writer agent to leverage multi-speaker and flexible styling.
