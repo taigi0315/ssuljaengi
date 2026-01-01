@@ -512,6 +512,7 @@ class PipelineOrchestrator:
             PipelineStage.INITIALIZED,
             PipelineStage.STORY_FOUND,
             PipelineStage.SCRIPT_GENERATED,
+            PipelineStage.ENGAGEMENT_GENERATED,
             PipelineStage.AUDIO_GENERATED,
             PipelineStage.VISUALS_GENERATED,
             PipelineStage.VIDEO_ASSEMBLED,
