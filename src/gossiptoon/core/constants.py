@@ -51,7 +51,8 @@ class EmotionTone(str, Enum):
     SARCASTIC = "sarcastic"
     FRUSTRATED = "frustrated"
     DETERMINED = "determined"
-    RELIEVED = "relieved"  # NEW
+    RELIEVED = "relieved"
+    EXASPERATED = "exasperated"  # NEW - fed up, exhausted patience
 
 class ActType(str, Enum):
     """Five-act structure for video scripts."""
