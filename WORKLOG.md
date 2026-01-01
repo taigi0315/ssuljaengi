@@ -72,6 +72,7 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Status**: SFX system fully integrated - ready for production use.
 
 - **2025-12-31**: Engagement system and volume tuning.
+
   - **Fix**: SFX Volume Adjustment (TICKET-015).
     - **Issue**: Initial 30% too quiet based on user feedback.
     - **Solution**: Adjusted to 50% for balanced mix with narration.
@@ -82,3 +83,16 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Agent**: GPT-4 with temp=0.8 for creative hooks, 5 styles (question/comment/reaction/sympathy/conflict).
     - **Pipeline**: New ENGAGEMENT_GENERATED stage between script and audio.
     - **Status**: Backend complete - ready for TICKET-017 (text overlay rendering).
+
+- **2025-12-31 (Evening)**: Completed engagement system implementation and bug fixes.
+  - **Feature**: Engagement Text Overlay (TICKET-017).
+    - **Component**: `EngagementOverlayGenerator` - ASS format renderer for hooks.
+    - **Rendering**: Top-positioned (10% from top), style-based colors (Yellow/Orange/Pink/Blue/Red).
+    - **FFmpeg Integration**: Dual subtitle track support (narration + engagement).
+    - **VideoAssembler**: Pass engagement_project through pipeline to video rendering.
+  - **Bug Fixes**:
+    - Fixed missing ENGAGEMENT_GENERATED in stage_order (orchestrator).
+    - Converted EngagementWriter from OpenAI to Gemini API (consistency).
+    - Made OPENAI_API_KEY optional and deprecated in config.
+  - **Enhancement**: Added comprehensive logging for debugging pipeline stages.
+  - **Status**: All code complete (SFX 50% + EngagementWriter + Text Overlays). Gemini API testing pending.
