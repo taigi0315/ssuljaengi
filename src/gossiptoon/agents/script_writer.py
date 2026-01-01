@@ -124,6 +124,8 @@ Your task is to convert stories into fast-paced, 40-second viral scripts.
 5. Assign emotion tones that match the dramatic intensity
 6. Estimate realistic scene durations (consider TTS pacing)
 
+{format_instructions}
+
 Output the complete script as valid JSON following the Schema exactly."""
 
     def __init__(self, config: ConfigManager) -> None:
@@ -142,12 +144,15 @@ Output the complete script as valid JSON following the Schema exactly."""
         )
         
         # Apply structured output to enforce Pydantic schema at generation time
-        self.structured_llm = self.llm.with_structured_output(Script)
+        self.structured_llm = self.llm.with_structured_output(
+            Script,
+            method="json_mode",  # Use JSON mode for schema enforcement
+        )
         
         self.prompt = self._create_prompt()
 
     def _create_prompt(self) -> ChatPromptTemplate:
-        """Create prompt template for structured output.
+        """Create prompt template with Pydantic parser.
 
         Returns:
             Chat prompt template
@@ -157,7 +162,7 @@ Output the complete script as valid JSON following the Schema exactly."""
                 ("system", self.SYSTEM_PROMPT),
                 ("human", self.USER_PROMPT_TEMPLATE),
             ]
-        )
+        ).partial(format_instructions=self.parser.get_format_instructions())
 
     @retry_with_backoff(max_retries=3, exceptions=(ScriptGenerationError,))
     async def write_script(self, story: Story) -> Script:
@@ -175,19 +180,31 @@ Output the complete script as valid JSON following the Schema exactly."""
         logger.info(f"Generating script for story: {story.id}")
 
         try:
-            # Build prompt messages
-            messages = self.prompt.format_messages(
+            # Build the full prompt
+            format_instructions = self.parser.get_format_instructions()
+            user_message = self.USER_PROMPT_TEMPLATE.format(
                 title=story.title,
                 content=story.content,
                 category=story.category.value,
+                format_instructions=format_instructions,
             )
-
-            # Generate with structured output (schema enforced!)
-            logger.info("Invoking LLM with structured output...")
-            script = await self.structured_llm.ainvoke(messages)
             
-            # script is already a validated Script Pydantic object!
-            logger.info(f"Received structured script with {len(script.acts)} acts")
+            full_prompt = f"{self.SYSTEM_PROMPT}\n\n{user_message}"
+            
+            # Generate with native Gemini API
+            response = await self.genai_model.generate_content_async(full_prompt)
+            
+            # Extract text and parse JSON
+            response_text = response.text
+            
+            # Clean up potential markdown code blocks
+            if "```json" in response_text:
+                response_text = response_text.split("```json")[1].split("```")[0]
+            elif "```" in response_text:
+                response_text = response_text.split("```")[1].split("```")[0]
+            
+            # Parse with Pydantic
+            script = self.parser.parse(response_text)
 
             # Validate and enhance script
             script = self._validate_and_enhance_script(script, story)
