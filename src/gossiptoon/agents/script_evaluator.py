@@ -3,13 +3,16 @@ from typing import Optional
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import PydanticOutputParser as LangChainPydanticOutputParser # Avoid conflict if any
+from langchain_core.output_parsers import (
+    PydanticOutputParser as LangChainPydanticOutputParser,
+)  # Avoid conflict if any
 
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.models.story import Story
 from gossiptoon.models.script import Script, Scene, Act, ActType, EmotionTone, CameraEffectType
 
 logger = logging.getLogger(__name__)
+
 
 class ScriptEvaluator:
     """Agent responsible for validating, formatting, and polishing the script."""
@@ -88,8 +91,8 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=self.config.api.google_api_key,
-            temperature=0.2, # Low temperature for strict validation
-            convert_system_message_to_human=True
+            temperature=0.2,  # Low temperature for strict validation
+            convert_system_message_to_human=True,
         )
         self.structured_llm = self.llm.with_structured_output(Script)
 
@@ -101,23 +104,29 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
         valid_emotions = ", ".join([e.value for e in EmotionTone])
         valid_effects = ", ".join([e.value for e in CameraEffectType])
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", self.SYSTEM_PROMPT),
-            ("user", "ORIGINAL STORY:\n{story_title}\n{story_body}\n\nDRAFT SCRIPT:\n{draft}")
-        ])
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.SYSTEM_PROMPT),
+                ("user", "ORIGINAL STORY:\n{story_title}\n{story_body}\n\nDRAFT SCRIPT:\n{draft}"),
+            ]
+        )
 
         chain = prompt | self.structured_llm
 
         try:
-            script = await chain.ainvoke({
-                "story_title": story.title,
-                "story_body": story.content,
-                "draft": draft_content,
-                "valid_emotions": valid_emotions,
-                "valid_effects": valid_effects
-            })
-            
-            logger.info(f"Script evaluated: {len(script.acts)} acts, {script.get_scene_count()} scenes.")
+            script = await chain.ainvoke(
+                {
+                    "story_title": story.title,
+                    "story_body": story.content,
+                    "draft": draft_content,
+                    "valid_emotions": valid_emotions,
+                    "valid_effects": valid_effects,
+                }
+            )
+
+            logger.info(
+                f"Script evaluated: {len(script.acts)} acts, {script.get_scene_count()} scenes."
+            )
             return script
         except Exception as e:
             logger.error(f"Script evaluation failed: {e}")

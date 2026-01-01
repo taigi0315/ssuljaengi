@@ -475,8 +475,8 @@ Generate scenes with this structure:
         self._save_readable_script(script, readable_path)
 
     def _save_readable_script(self, script: Script, output_path: Any) -> None:
-        """Save human-readable version of script.
-
+        """Save human-readable version of script (supports webtoon style).
+        
         Args:
             script: Script to save
             output_path: Path to save to
@@ -498,8 +498,36 @@ Generate scenes with this structure:
                     f.write(f"Duration: {scene.estimated_duration_seconds}s\n")
                     f.write(f"Emotion: {scene.emotion.value}\n")
                     f.write(f"Characters: {', '.join(scene.characters_present)}\n\n")
-                    f.write(f"NARRATION:\n{scene.narration}\n\n")
-                    f.write(f"VISUAL:\n{scene.visual_description}\n\n")
+                    
+                    # Check if webtoon-style
+                    if hasattr(scene, "is_webtoon_style") and scene.is_webtoon_style():
+                        # Webtoon format
+                        if scene.panel_layout:
+                            f.write(f"PANEL LAYOUT:\n{scene.panel_layout}\n\n")
+                        
+                        f.write(f"AUDIO CHUNKS ({len(scene.audio_chunks)}):\n")
+                        for i, chunk in enumerate(scene.audio_chunks, 1):
+                            f.write(f"\n  [{i}] {chunk.chunk_type.value.upper()} - {chunk.speaker_id}")
+                            if hasattr(chunk, "speaker_gender") and chunk.speaker_gender:
+                                f.write(f" ({chunk.speaker_gender})")
+                            f.write("\n")
+                            f.write(f"      Text: {chunk.text}\n")
+                            f.write(f"      Director: {chunk.director_notes}\n")
+                            if hasattr(chunk, "bubble_position") and chunk.bubble_position:
+                                f.write(f"      Bubble: {chunk.bubble_position} ({chunk.bubble_style})\n")
+                        
+                        if scene.bubble_metadata:
+                            f.write(f"\n  CHAT BUBBLES ({len(scene.bubble_metadata)}):\n")
+                            for bubble in scene.bubble_metadata:
+                                f.write(f"    - {bubble.character_name}: \"{bubble.text}\" ")
+                                f.write(f"[{bubble.position}, {bubble.style}]\n")
+                    else:
+                        # Legacy format
+                        if scene.narration:
+                            f.write(f"NARRATION:\n{scene.narration}\n\n")
+                    
+                    f.write(f"\nVISUAL:\n{scene.visual_description}\n\n")
                     f.write("-" * 40 + "\n\n")
 
         logger.info(f"Readable script saved to {output_path}")
+```
