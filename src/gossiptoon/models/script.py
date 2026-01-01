@@ -13,15 +13,45 @@ from gossiptoon.core.constants import (
     CameraEffectType,
     EmotionTone,
 )
+from gossiptoon.models.audio import AudioChunk, BubbleMetadata
 
 
 class Scene(BaseModel):
-    """A single scene within an act."""
+    """A single scene within an act.
+
+    Supports both legacy narration-based scenes and new webtoon-style
+    multi-character dialogue scenes.
+    """
 
     scene_id: str = Field(..., description="Unique scene identifier")
     act: Optional[ActType] = Field(None, description="Which act this scene belongs to")
     order: int = Field(ge=0, description="Scene order within act")
-    narration: str = Field(..., min_length=10, max_length=500, description="Scene narration")
+
+    # Legacy narration field (optional for backward compatibility)
+    narration: Optional[str] = Field(
+        None, min_length=10, max_length=500, description="Scene narration (legacy)"
+    )
+
+    # NEW: Webtoon-style multi-character dialogue
+    audio_chunks: list[AudioChunk] = Field(
+        default_factory=list,
+        description="Sequence of narration and dialogue chunks for multi-character scenes",
+    )
+
+    # NEW: Webtoon panel description
+    panel_layout: Optional[str] = Field(
+        None,
+        min_length=20,
+        description="Visual scene description in Korean webtoon panel style",
+    )
+
+    # NEW: Chat bubble metadata
+    bubble_metadata: list[BubbleMetadata] = Field(
+        default_factory=list,
+        description="Chat bubble positions and styles for dialogue",
+    )
+
+    # Existing fields
     emotion: EmotionTone = Field(..., description="Emotion tone for TTS")
     visual_description: str = Field(
         ..., min_length=20, description="Detailed visual description for image generation"
@@ -36,8 +66,7 @@ class Scene(BaseModel):
         default=None, description="Recommended camera movement/effect for this scene"
     )
     visual_sfx: Optional[str] = Field(
-        None,
-        description="Optional comic-style sound effect text (e.g., 'BAM!', 'DOOM', 'WHAM!')"
+        None, description="Optional comic-style sound effect text (e.g., 'BAM!', 'DOOM', 'WHAM!')"
     )
 
     @field_validator("emotion", mode="before")
@@ -71,11 +100,11 @@ class Scene(BaseModel):
                 v_lower = v.lower()
                 if any(e.value == v_lower for e in CameraEffectType):
                     return v_lower
-                
+
                 # Handle common hallucinations
                 if v_lower == "quick_cuts":
-                    return CameraEffectType.SHAKE # Best approx
-                
+                    return CameraEffectType.SHAKE  # Best approx
+
                 print(f"Warning: Invalid camera_effect '{v}', defaulting to 'static'")
                 return CameraEffectType.STATIC
         except Exception:
@@ -84,7 +113,7 @@ class Scene(BaseModel):
 
     @field_validator("narration")
     @classmethod
-    def validate_narration_length(cls, v: str) -> str:
+    def validate_narration_length(cls, v: Optional[str]) -> Optional[str]:
         """Ensure narration is concise for shorts.
 
         Args:
@@ -96,6 +125,9 @@ class Scene(BaseModel):
         Raises:
             ValueError: If narration exceeds word limit
         """
+        if v is None:
+            return v
+
         word_count = len(v.split())
         if word_count > MAX_SCENE_NARRATION_WORDS:
             raise ValueError(
@@ -119,6 +151,47 @@ class Scene(BaseModel):
             raise ValueError("Visual description too short (minimum 5 words)")
         return v
 
+    def model_post_init(self, __context: Any) -> None:
+        """Validate that either narration or audio_chunks is present.
+
+        Raises:
+            ValueError: If neither narration nor audio_chunks is provided
+        """
+        if not self.narration and not self.audio_chunks:
+            raise ValueError(
+                "Scene must have either 'narration' (legacy) or 'audio_chunks' (webtoon)"
+            )
+
+    def is_webtoon_style(self) -> bool:
+        """Check if this is a webtoon-style scene with dialogue.
+
+        Returns:
+            True if scene uses audio_chunks, False if legacy narration
+        """
+        return len(self.audio_chunks) > 0
+
+    def get_all_speakers(self) -> list[str]:
+        """Get unique speakers in this scene.
+
+        Returns:
+            List of speaker IDs
+        """
+        if not self.is_webtoon_style():
+            return ["Narrator"]
+
+        speakers = set(chunk.speaker_id for chunk in self.audio_chunks)
+        return sorted(list(speakers))
+
+    def get_dialogue_chunks(self) -> list[AudioChunk]:
+        """Get only dialogue chunks (exclude narration).
+
+        Returns:
+            List of dialogue AudioChunks
+        """
+        from gossiptoon.models.audio import AudioChunkType
+
+        return [chunk for chunk in self.audio_chunks if chunk.chunk_type == AudioChunkType.DIALOGUE]
+
     def get_narration_word_count(self) -> int:
         """Get word count of narration.
 
@@ -129,6 +202,7 @@ class Scene(BaseModel):
 
     class Config:
         """Pydantic config."""
+
         pass
 
 
@@ -137,9 +211,7 @@ class Act(BaseModel):
 
     act_type: ActType = Field(..., description="Type of act")
     scenes: list[Scene] = Field(min_length=1, max_length=5, description="Scenes in this act")
-    target_duration_seconds: float = Field(
-        ge=1.0, le=20.0, description="Target act duration"
-    )
+    target_duration_seconds: float = Field(ge=1.0, le=20.0, description="Target act duration")
 
     @field_validator("scenes")
     @classmethod
@@ -219,9 +291,7 @@ class Script(BaseModel):
         description="Total estimated duration",
     )
     target_audience: str = Field(default="general", description="Target audience")
-    content_warnings: list[str] = Field(
-        default_factory=list, description="Content warnings if any"
-    )
+    content_warnings: list[str] = Field(default_factory=list, description="Content warnings if any")
 
     @field_validator("acts")
     @classmethod
@@ -247,9 +317,7 @@ class Script(BaseModel):
         actual_order = [act.act_type for act in v]
 
         if actual_order != expected_order:
-            raise ValueError(
-                f"Acts must be in order {expected_order}, got {actual_order}"
-            )
+            raise ValueError(f"Acts must be in order {expected_order}, got {actual_order}")
 
         return v
 
@@ -265,10 +333,7 @@ class Script(BaseModel):
             Validated duration
         """
         if v < 50 or v > 58:
-            print(
-                f"Warning: Total duration {v}s not optimal for shorts "
-                f"(recommended 50-58s)"
-            )
+            print(f"Warning: Total duration {v}s not optimal for shorts " f"(recommended 50-58s)")
         return v
 
     def get_all_scenes(self) -> list[Scene]:
@@ -311,4 +376,5 @@ class Script(BaseModel):
 
     class Config:
         """Pydantic config."""
+
         pass
