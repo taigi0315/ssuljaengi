@@ -23,7 +23,19 @@ from gossiptoon.core.config import ConfigManager
 from gossiptoon.pipeline.checkpoint import PipelineStage
 from gossiptoon.pipeline.orchestrator import PipelineOrchestrator
 
+import logging
+from rich.logging import RichHandler
+
 console = Console()
+
+# Configure logging to work with Rich
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(console=console, rich_tracebacks=True, show_path=False)]
+)
+logger = logging.getLogger("gossiptoon")
 
 
 @click.group()
@@ -239,6 +251,9 @@ async def _resume_pipeline(project_id: str, config_path: Optional[str] = None):
     try:
         # Load config
         config = _load_config(config_path)
+
+        # Set context for correct paths
+        config.set_job_context(project_id)
 
         # Initialize orchestrator
         orchestrator = PipelineOrchestrator(config)

@@ -88,7 +88,7 @@ class PipelineOrchestrator:
         # Initialize components
         self.story_finder = StoryFinderAgent(config)
         self.script_writer = ScriptWriterAgent(config)
-        self.engagement_writer = EngagementWriter()  # NEW
+        self.engagement_writer = EngagementWriter(api_key=config.api.google_api_key)  # NEW
         self.audio_generator = AudioGenerator(config)
         self.visual_director = VisualDirector(config)
         self.video_assembler = VideoAssembler(config)
@@ -251,7 +251,8 @@ class PipelineOrchestrator:
                 video_project = await self._run_video_assembler(
                     visual_project, 
                     audio_project,
-                    engagement_project  # Pass engagement hooks
+                    script,  # Pass script explicitly
+                    engagement_project=engagement_project
                 )
                 completed_stages.append(PipelineStage.VIDEO_ASSEMBLED)
                 self.checkpoint_manager.save_checkpoint(
@@ -479,6 +480,7 @@ class PipelineOrchestrator:
         self,
         visual_project: VisualProject,
         audio_project: AudioProject,
+        script: Script,
         engagement_project=None,  # Optional EngagementProject
     ) -> VideoProject:
         """Run video assembler stage.
@@ -486,6 +488,7 @@ class PipelineOrchestrator:
         Args:
             visual_project: Visual project
             audio_project: Audio project
+            script: Script object
             engagement_project: Optional engagement hooks
 
         Returns:
@@ -494,6 +497,7 @@ class PipelineOrchestrator:
         video_project = await self.video_assembler.assemble_video(
             visual_project, 
             audio_project,
+            script,
             engagement_project=engagement_project
         )
         logger.info(f"Video assembled: {video_project.output_path}")

@@ -645,6 +645,29 @@ def add_subtitles(self, subtitle_path: Path) -> "FFmpegBuilder":
 - **Volume**: 70% (-6dB) configurable
 - **Auto-overlay**: Based on scene offsets
 
+#### TICKET-020: Subtitle Fix
+
+- Hard-burned subtitles using filter_complex chaining
+- Fixed concurrent filter usage bug
+
+### Pipeline Resilience (v0.2.1)
+
+#### Resume Reliability
+
+- Fixed CLI context initialization bug in `gossiptoon resume`
+- Ensures checkpoints are loaded from project-specific directories
+
+#### API Quota Handling
+
+- Implemented robust fallback patterns for `EngagementWriter`
+- Returns safe default content when Gemini 429 errors occur
+- Allows video generation to complete even during API outages
+
+#### Quality Assurance
+
+- **Emoji Sanitization**: Automatically strips characters in emoji unicdoe ranges from overlays to prevent font rendering errors.
+- **Strict Validations**: Enforced by schema updates to prevent hallucinated enums.
+
 ---
 
 ## Configuration
@@ -875,12 +898,10 @@ Image generation failed: Gemini did not return an image
 
 Planned features for v0.3.0:
 
-1. **TICKET-015**: SFX Volume Tuning (30% background)
-2. **TICKET-016**: EngagementWriter Agent (separate from ScriptWriter)
-3. **TICKET-017**: Text Overlay Rendering (top-positioned hooks)
-4. **Background Music**: Continuous ambient track (20-30% volume)
-5. **A/B Testing**: Compare different subtitle styles, SFX frequencies
-6. **Multi-Language**: Support Spanish, French, etc.
+1. **TICKET-022**: YouTube Metadata Generator (Title, Description, Tags)
+2. **TICKET-023**: Script Evaluator (Formatting & Validation Agent)
+3. **Background Music**: Continuous ambient track (20-30% volume)
+4. **Multi-Language**: Support Spanish, French, etc.
 
 ---
 

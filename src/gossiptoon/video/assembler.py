@@ -7,7 +7,7 @@ import asyncio
 import logging
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.core.exceptions import VideoAssemblyError
@@ -53,6 +53,7 @@ class VideoAssembler:
         self,
         visual_project: VisualProject,
         audio_project: AudioProject,
+        script: Any,  # Avoid circular import, typed as Any or check if Script is imported
         engagement_project=None,  # Optional EngagementProject
     ) -> VideoProject:
         """Assemble complete video from visual and audio assets.
@@ -60,6 +61,7 @@ class VideoAssembler:
         Args:
             visual_project: Visual project with images
             audio_project: Audio project with master audio and timestamps
+            script: Script object
             engagement_project: Optional engagement hooks to render
 
         Returns:
@@ -94,11 +96,11 @@ class VideoAssembler:
             
             engagement_overlay_file = generator.generate_ass_file(
                 engagement_project=engagement_project,
-                script=visual_project.script,  # Need to pass script
+                script=script,  # Use passed script object
                 audio_project=audio_project,
                 output_path=overlay_path,
-                video_width=self.config.video.resolution[0],
-                video_height=self.config.video.resolution[1],
+                video_width=self.config.video.width,
+                video_height=self.config.video.height,
             )
             logger.info(f"Generated engagement overlay: {engagement_overlay_file}")
 
@@ -188,15 +190,22 @@ class VideoAssembler:
             # 1. Update ideal audio timeline
             total_audio_time += audio_duration
             
-            # 2. Calculate target frame count for this timestamp
-            target_total_frames = round(total_audio_time * fps)
-            
-            # 3. Determine frames for THIS segment
-            segment_frames = target_total_frames - total_frames
-            
-            # 4. Calculate precise duration for FFmpeg
-            # This ensures video duration exactly matches the frame count FFmpeg will generate
-            duration = segment_frames / fps
+            try:
+                # 2. Calculate target frame count for this timestamp
+                target_total_frames = round(total_audio_time * fps)
+                
+                # 3. Determine frames for THIS segment
+                segment_frames = target_total_frames - total_frames
+                
+                # 4. Calculate precise duration for FFmpeg
+                # This ensures video duration exactly matches the frame count FFmpeg will generate
+                duration = segment_frames / fps
+            except TypeError as e:
+                logger.error(f"TypeError during duration calc in segment {i}: {e}")
+                logger.error(f"total_audio_time: {type(total_audio_time)} = {total_audio_time}")
+                logger.error(f"fps: {type(fps)} = {fps}")
+                logger.error(f"audio_duration: {type(audio_duration)} = {audio_duration}")
+                raise
             
             # Update state
             total_frames = target_total_frames

@@ -134,7 +134,11 @@ class FFmpegBuilder:
         inputs = self._build_inputs(segments, master_audio)
 
         # Build filter complex
-        filter_complex = self._build_filter_complex(segments, **options)
+        filter_complex = self._build_filter_complex(
+            segments, 
+            engagement_overlay=engagement_overlay,
+            **options
+        )
 
         # Build maps
         maps = ["[outv]",  # Video output from filter
@@ -151,22 +155,9 @@ class FFmpegBuilder:
             output_file=output_file,
         )
         
-        # Add subtitle filters if provided (MUST be chained, not separate -vf calls)
-        subtitle_filters = []
-        if options.get("subtitles_path"):
-            # Escape colons for FFmpeg path format
-            escaped_path = str(options["subtitles_path"]).replace(":", "\\\\:")
-            subtitle_filters.append(f"subtitles={escaped_path}")
-        if engagement_overlay:
-            # Escape colons for FFmpeg path format
-            escaped_path = str(engagement_overlay).replace(":", "\\\\:")
-            subtitle_filters.append(f"subtitles={escaped_path}")
-        
-        if subtitle_filters:
-            # Chain all subtitle filters together with commas (single -vf)
-            combined_filter = ",".join(subtitle_filters)
-            command.output_options.extend(["-vf", combined_filter])
-            logger.info(f"Added subtitle filters: {combined_filter}")
+        # Subtitles are now handled in filter_complex to avoid conflict
+        if options.get("subtitles_path") or engagement_overlay:
+            logger.info("Subtitles/Overlays included in filter_complex")
 
         logger.info(f"FFmpeg command: {command.to_string()}")
 
@@ -202,7 +193,12 @@ class FFmpegBuilder:
 
         return inputs
 
-    def _build_filter_complex(self, segments: list[VideoSegment], **options: Any) -> str:
+    def _build_filter_complex(
+        self, 
+        segments: list[VideoSegment], 
+        engagement_overlay: Optional[Path] = None,
+        **options: Any
+    ) -> str:
         """Build filter complex graph.
 
         This is where effects are applied and segments are concatenated.
@@ -266,7 +262,8 @@ class FFmpegBuilder:
         concat_inputs = "".join(f"[v{i}]" for i in range(len(segments)))
         
         # If subtitles provided, concat output is intermediate
-        final_video_label = "[outv]" if not options.get("subtitles_path") else "[v_concat]"
+        has_subtitles = bool(options.get("subtitles_path") or engagement_overlay)
+        final_video_label = "[outv]" if not has_subtitles else "[v_concat]"
         
         concat_filter = (
             f"{concat_inputs}concat=n={len(segments)}:v=1:a=0{final_video_label}"
@@ -274,11 +271,30 @@ class FFmpegBuilder:
         filter_parts.append(concat_filter)
 
         # Apply subtitles if provided
+        # Apply subtitles if provided
+        current_v = final_video_label
+        
+        # 1. Main captions
         if options.get("subtitles_path"):
             # Escape path for FFmpeg filter
-            sub_path = str(options["subtitles_path"]).replace(":", "\\:").replace("'", "\\'")
-            subtitle_filter = f"[v_concat]subtitles='{sub_path}'[outv]"
+            sub_path = str(options["subtitles_path"]).replace(":", "\\\\:").replace("'", "\\'")
+            next_v = "[v_subs]" if engagement_overlay else "[outv]"
+            # If engagement overlay exists, we output to intermediate, else final
+            subtitle_filter = f"{current_v}subtitles='{sub_path}'{next_v}"
             filter_parts.append(subtitle_filter)
+            current_v = next_v
+
+        # 2. Engagement overlay (on top of captions)
+        if engagement_overlay:
+            # Escape path for FFmpeg filter
+            overlay_path = str(engagement_overlay).replace(":", "\\\\:").replace("'", "\\'")
+            overlay_filter = f"{current_v}subtitles='{overlay_path}'[outv]"
+            filter_parts.append(overlay_filter)
+            
+        # Ensure we have a path to [outv] if no subtitles were applied to final_video_label
+        if not options.get("subtitles_path") and not engagement_overlay:
+            # Already mapped to [outv] via concat if final_video_label was [outv]
+            pass
 
         # Join all filters
         filter_complex = ";".join(filter_parts)

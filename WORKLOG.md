@@ -121,6 +121,7 @@ This document records the narrative of changes for the Ssuljaengi project.
   - **Status**: Production ready. All code complete and tested.
 
 - **2025-12-31 (Ticket Sprint - 11:30 PM)**: Completed 3 tickets for next release.
+
   - **TICKET-020 (Subtitle Fix)**:
     - Fixed FFmpeg filter chain bug (multiple `-vf` overwrote each other)
     - Subtitles now properly hard-burned into video
@@ -136,3 +137,32 @@ This document records the narrative of changes for the Ssuljaengi project.
     - CLI integration pending (next session)
   - **Additional**: Fixed EffectType → CameraEffect migration (added LOOM, relieved emotions)
   - **Status**: 3 tickets 90% complete. E2E test scheduled after CLI integration.
+
+- **2026-01-01 (Morning)**: Schema Validation & Model Fix (TICKET-021).
+
+  - **Issue**: `ScriptWriterAgent` generating invalid schema (enums like 'quick_cuts') and `gemini-2.5-flash` blocking content.
+  - **Fix 1 (Model Impact)**: Reverted to `gemini-2.5-flash` for ScriptWriter and EngagementWriter.
+  - **Fix 2 (Safety)**: Configured `BLOCK_NONE` for all harm categories in Gemini client.
+  - **Fix 3 (Schema)**:
+    - Enforced `.with_structured_output(Schema)` for strict JSON generation.
+    - Updated `Script`/`Scene` Pydantic models to auto-correct 1-based indexing (`order: 1` -> `order: 0`).
+    - Added robust validators to map hallucinated Enums (e.g., `quick_cuts` -> `CameraEffect.SHAKE`).
+  - **Fix 4 (Optimization)**: Removed `json_schema_extra` (example payload) from Pydantic models to suppress LangChain warnings.
+
+- **2026-01-01 (Pipeline Stabilization & Polish)**: Fixed critical pipeline glitches and organized repo.
+
+  - **Repo Cleanup**: Moved ad-hoc test scripts to `tests/manual/` and `scripts/dev_tools/`. Cleaned up root artifacts.
+  - **Fix**: Pipeline Resume (CLI).
+    - **Issue**: `gossiptoon resume` failed with "No checkpoint found".
+    - **Fix**: Updated `main.py` to set job context before initialization.
+    - **Result**: Successfully resumes interrupted jobs.
+  - **Fix**: API Quota Resilience (Engagement).
+    - **Issue**: `gemini-2.5-flash` hit 429 rate limits, blocking pipeline.
+    - **Fix**: Implemented fallback in `EngagementWriter` to use default hooks if API fails.
+  - **Fix**: Font/Emoji Rendering.
+    - **Issue**: Fallback text contained emojis ("👀") causing "□" glyph errors in video overlay.
+    - **Fix**: Sanitized overlay text to strip emojis (regex `U+10000-U+10FFFF`) and updated fallback hooks to plain text.
+  - **Fix**: Video Assembly (FFmpeg).
+    - **Issue**: `CameraEffect` class name collision and FFmpeg filter graph conflicts.
+    - **Fix**: Renamed Enum to `CameraEffectType`; chained subtitle filters inside `filter_complex`.
+    - **Result**: End-to-end video generation successful (63s duration).

@@ -9,9 +9,9 @@ from typing import Optional
 
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, HarmBlockThreshold, HarmCategory
 
-from gossiptoon.models.engagement import EngagementProject
+from gossiptoon.models.engagement import EngagementProject, EngagementHook, EngagementStyle
 from gossiptoon.models.script import Script
 
 logger = logging.getLogger(__name__)
@@ -61,12 +61,20 @@ to maximize viewer engagement (comments, shares, retention).
         Args:
             api_key: Google API key (optional, uses env var if not provided)
         """
-        self.llm = ChatGoogleGenerativeAI(
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+
+        llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             temperature=0.8,  # Higher for creative hooks
             google_api_key=api_key,
+            safety_settings=safety_settings,
         )
-        self.parser = PydanticOutputParser(pydantic_object=EngagementProject)
+        self.structured_llm = llm.with_structured_output(EngagementProject)
 
     async def generate_engagement_hooks(self, script: Script) -> EngagementProject:
         """Generate engagement hooks from script analysis.
@@ -88,30 +96,60 @@ to maximize viewer engagement (comments, shares, retention).
                 ("system", self.SYSTEM_PROMPT),
                 (
                     "user",
-                    "Script Summary:\n\n{script_summary}\n\n{format_instructions}",
+                    "Script Summary:\n\n{script_summary}",
                 ),
             ]
         )
         logger.info("ENGAGEMENT WRITER: Prompt template created")
 
-        # Create chain
-        logger.info("ENGAGEMENT WRITER: Creating LangChain chain (Gemini 2.5 Flash)...")
-        chain = prompt | self.llm | self.parser
-        logger.info("ENGAGEMENT WRITER: Chain created, preparing to call Gemini API...")
-
-        # Execute
+        # Execute with structured output
         try:
-            logger.info("ENGAGEMENT WRITER: Calling Gemini API for engagement hooks...")
-            engagement_project = await chain.ainvoke(
-                {
-                    "script_summary": self._format_script_summary(script),
-                    "format_instructions": self.parser.get_format_instructions(),
-                }
+            logger.info("ENGAGEMENT WRITER: Calling Gemini 2.5 Flash via structured output...")
+            
+            messages = prompt.format_messages(
+                script_summary=self._format_script_summary(script)
             )
+            
+            engagement_project = await self.structured_llm.ainvoke(messages)
+            
             logger.info("ENGAGEMENT WRITER: Gemini API call successful!")
+            return engagement_project
+
         except Exception as e:
-            logger.error(f"ENGAGEMENT WRITER: Gemini API call failed: {type(e).__name__}: {e}")
-            raise
+            logger.warning(
+                f"ENGAGEMENT WRITER: Failed to generate hooks ({type(e).__name__}: {e}). "
+                "Continuing without engagement overlays (Fallback)."
+            )
+            # Return fallback project to allow pipeline to proceed
+            # Must satisfy schema: min 2 hooks, strategy
+            
+            # Get valid scene IDs
+            first_scene = script.acts[0].scenes[0].scene_id if script.acts and script.acts[0].scenes else "scene_01"
+            last_scene = script.acts[-1].scenes[-1].scene_id if script.acts and script.acts[-1].scenes else "scene_01"
+            
+            fallback_hooks = [
+                EngagementHook(
+                    hook_id="fallback_hook_1",
+                    text="Watch till the end!",
+                    scene_id=first_scene,
+                    timing=0.5,
+                    style=EngagementStyle.COMMENT,
+                    reasoning="Fallback hook 1"
+                ),
+                EngagementHook(
+                    hook_id="fallback_hook_2",
+                    text="What do you think?",
+                    scene_id=last_scene,
+                    timing=0.5,
+                    style=EngagementStyle.QUESTION,
+                    reasoning="Fallback hook 2"
+                )
+            ]
+            
+            return EngagementProject(
+                hooks=fallback_hooks,
+                strategy="Fallback strategy due to API quota"
+            )
 
         logger.info(
             f"Generated {len(engagement_project.hooks)} engagement hooks: "

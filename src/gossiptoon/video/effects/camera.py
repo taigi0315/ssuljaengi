@@ -6,7 +6,7 @@ into specific FFmpeg filter configurations.
 
 from typing import Any, Optional
 
-from gossiptoon.core.constants import CameraEffect
+from gossiptoon.core.constants import CameraEffect as CameraEffectType
 from gossiptoon.video.effects.base import Effect, EffectConfig
 from gossiptoon.video.effects.ken_burns import KenBurnsConfig, KenBurnsEffect
 
@@ -14,7 +14,7 @@ from gossiptoon.video.effects.ken_burns import KenBurnsConfig, KenBurnsEffect
 class CameraEffectConfig(EffectConfig):
     """Configuration for camera effect."""
     
-    effect_type: CameraEffect
+    effect_type: CameraEffectType
     intensity: float = 0.3  # Generic intensity multiplier
 
 
@@ -32,11 +32,11 @@ class CameraEffect(Effect):
         intensity = self.config.intensity
 
         # Static shot
-        if eff_type == CameraEffect.STATIC:
+        if eff_type == CameraEffectType.STATIC:
             return None
 
         # Zoom In (1.0 -> 1.0 + intensity)
-        if eff_type == CameraEffect.ZOOM_IN:
+        if eff_type == CameraEffectType.ZOOM_IN:
             return KenBurnsEffect(KenBurnsConfig(
                 zoom_start=1.0,
                 zoom_end=1.0 + intensity,
@@ -45,7 +45,7 @@ class CameraEffect(Effect):
             ))
 
         # Zoom Out (1.0 + intensity -> 1.0)
-        if eff_type == CameraEffect.ZOOM_OUT:
+        if eff_type == CameraEffectType.ZOOM_OUT:
             return KenBurnsEffect(KenBurnsConfig(
                 zoom_start=1.0 + intensity,
                 zoom_end=1.0,
@@ -56,7 +56,7 @@ class CameraEffect(Effect):
         # Pans (require slight zoom to allow movement)
         pan_zoom = 1.1 + (intensity * 0.5)  # Zoom needed for panning space
         
-        if eff_type == CameraEffect.PAN_LEFT:
+        if eff_type == CameraEffectType.PAN_LEFT:
             return KenBurnsEffect(KenBurnsConfig(
                 zoom_start=pan_zoom,
                 zoom_end=pan_zoom,
@@ -64,7 +64,7 @@ class CameraEffect(Effect):
                 pan_intensity=intensity
             ))
 
-        if eff_type == CameraEffect.PAN_RIGHT:
+        if eff_type == CameraEffectType.PAN_RIGHT:
             return KenBurnsEffect(KenBurnsConfig(
                 zoom_start=pan_zoom,
                 zoom_end=pan_zoom,
@@ -72,7 +72,7 @@ class CameraEffect(Effect):
                 pan_intensity=intensity
             ))
             
-        if eff_type == CameraEffect.PAN_UP:
+        if eff_type == CameraEffectType.PAN_UP:
             return KenBurnsEffect(KenBurnsConfig(
                 zoom_start=pan_zoom,
                 zoom_end=pan_zoom,
@@ -80,7 +80,7 @@ class CameraEffect(Effect):
                 pan_intensity=intensity
             ))
 
-        if eff_type == CameraEffect.PAN_DOWN:
+        if eff_type == CameraEffectType.PAN_DOWN:
             return KenBurnsEffect(KenBurnsConfig(
                 zoom_start=pan_zoom,
                 zoom_end=pan_zoom,
@@ -89,7 +89,7 @@ class CameraEffect(Effect):
             ))
 
         # SHAKE requires different logic
-        if eff_type == CameraEffect.SHAKE:
+        if eff_type == CameraEffectType.SHAKE:
             return ShakeEffect(intensity=intensity)
 
         return None

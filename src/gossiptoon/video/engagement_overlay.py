@@ -4,6 +4,7 @@ Renders engagement hooks as top-positioned text overlays in ASS format.
 """
 
 import logging
+import re
 from pathlib import Path
 
 from gossiptoon.core.utils import format_timestamp_ass
@@ -138,6 +139,19 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
         header += "\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
         return header
 
+    def _sanitize_text(self, text: str) -> str:
+        """Remove emojis and unsupported characters.
+        
+        Args:
+            text: Input text
+            
+        Returns:
+            Sanitized text safe for ASS rendering
+        """
+        # Remove characters in Supplementary Planes (emojis)
+        # matches range U+10000 to U+10FFFF
+        return re.sub(r'[\U00010000-\U0010ffff]', '', text).strip()
+
     def _generate_events(
         self,
         engagement_project: EngagementProject,
@@ -197,7 +211,7 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
                 f"engagement,"  # Name
                 "0,0,0,"  # Margins (use style defaults)
                 ","  # Effect (none)
-                f"{hook.text}"  # Text
+                f"{self._sanitize_text(hook.text)}"  # Text
             )
             events.append(event_line)
 
