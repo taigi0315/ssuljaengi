@@ -209,8 +209,66 @@ Generate scenes with this structure:
 - Use director_notes to add emotional depth
 - Create a visually dynamic webtoon experience!"""
 
-    MAX_SCENES = 15
-    MIN_SCENES = 12
+    LEGACY_SYSTEM_PROMPT = """You are an expert scriptwriter for YouTube Shorts.
+
+**Task**: Write a compelling 5-Act video script based on a Reddit story.
+
+**Style**: Narrated story with minimal dialogue, focus on pacing and visual description.
+
+**Structure (Five Acts):**
+1. **The Hook** (0-3s)
+2. **Setup** (3-10s)
+3. **Escalation** (10-20s)
+4. **Climax** (20-35s)
+5. **Resolution** (35-45s)
+
+**Scene Structure:**
+Each scene must have:
+- narration: The voiceover text (MAX 50 words)
+- visual_description: Detailed description for image generation (photorealistic style)
+- emotion: Scene emotion
+- estimated_duration_seconds: Duration
+
+**Example Scene:**
+```json
+{
+  "scene_id": "scene_01",
+  "narration": "It was a dark and stormy night...",
+  "visual_description": "Dark storm clouds gathering over a spooky house",
+  "emotion": "suspenseful",
+  "estimated_duration_seconds": 3.5
+}
+```
+
+**IMPORTANT:**
+- Focus on clear, engaging narration.
+- Keep sentences short and punchy.
+"""
+
+    LEGACY_USER_PROMPT_TEMPLATE = """Convert this Reddit story into a YouTube Short script:
+
+**Story Title:** {title}
+
+**Content:**
+{content}
+
+**Category:** {category}
+
+**Instructions:**
+1. Break down the story into 5 structured acts.
+2. Write concise narration for each scene.
+3. Provide vivid visual descriptions.
+4. Keep total duration under 60 seconds.
+
+**Output Format:**
+Generate scenes with:
+- narration
+- visual_description
+- emotion
+- estimated_duration_seconds
+
+{format_instructions}
+"""
 
     def __init__(self, config: ConfigManager) -> None:
         """Initialize Script Writer Agent.
@@ -243,11 +301,21 @@ Generate scenes with this structure:
         Returns:
             Chat prompt template
         """
+        # Inject config values into system prompt
+        if self.config.script.webtoon_mode:
+            system_prompt = self.SYSTEM_PROMPT.replace(
+                "MAX 30 words", f"MAX {self.config.script.max_dialogue_chars} characters"
+            )
+            user_prompt = self.USER_PROMPT_TEMPLATE
+        else:
+            system_prompt = self.LEGACY_SYSTEM_PROMPT
+            user_prompt = self.LEGACY_USER_PROMPT_TEMPLATE
+
         # Simplify Prompt - No strict enums
         return ChatPromptTemplate.from_messages(
             [
-                ("system", self.SYSTEM_PROMPT),
-                ("human", self.USER_PROMPT_TEMPLATE),
+                ("system", system_prompt),
+                ("human", user_prompt),
             ]
         )
 
@@ -428,10 +496,13 @@ Generate scenes with this structure:
 
                 # Validate chunk text lengths
                 for chunk in scene.audio_chunks:
-                    word_count = len(chunk.text.split())
-                    if word_count > 30:
+                    # Check character length based on config
+                    char_count = len(chunk.text)
+                    max_chars = self.config.script.max_dialogue_chars
+
+                    if char_count > max_chars:
                         logger.warning(
-                            f"Chunk {chunk.chunk_id} text is long ({word_count} words, max 30)"
+                            f"Chunk {chunk.chunk_id} text is long ({char_count} chars, max {max_chars})"
                         )
 
                     # Validate director_notes
@@ -452,9 +523,10 @@ Generate scenes with this structure:
                 # Legacy validation
                 if scene.narration:
                     word_count = len(scene.narration.split())
-                    if word_count > 50:
+                    max_legacy = self.config.script.max_narration_chars // 5  # Approx words
+                    if word_count > max_legacy:
                         logger.warning(
-                            f"Scene {scene.scene_id} narration is long ({word_count} words, max 50)"
+                            f"Scene {scene.scene_id} narration is long ({word_count} words, max {max_legacy})"
                         )
 
     def _save_script(self, script: Script) -> None:
