@@ -62,9 +62,10 @@ to maximize viewer engagement (comments, shares, retention).
             api_key: Google API key (optional, uses env var if not provided)
         """
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",  # Reverted from 1.5-flash
+            model="gemini-2.5-flash",
             temperature=0.8,  # Higher for creative hooks
             google_api_key=api_key,
+            transport="rest",  # Use REST API to avoid Vertex AI auth
         )
         self.parser = PydanticOutputParser(pydantic_object=EngagementProject)
 
