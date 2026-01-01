@@ -356,6 +356,67 @@ class PipelineOrchestrator:
         """
         audio_project = await self.audio_generator.generate_audio_project(script)
         logger.info(f"Audio generated: {audio_project.total_duration:.1f}s")
+        
+        # Overlay SFX if scenes have visual_sfx
+        audio_project = await self._overlay_audio_sfx(script, audio_project)
+        
+        return audio_project
+    
+    async def _overlay_audio_sfx(self, script: Script, audio_project: AudioProject) -> AudioProject:
+        """Overlay audio SFX on master audio based on scene visual_sfx.
+
+        Args:
+            script: Script with scene SFX information
+            audio_project: Audio project with master audio
+
+        Returns:
+            AudioProject with SFX-mixed master audio
+        """
+        from gossiptoon.audio.sfx_mapper import SFXMapper
+        from gossiptoon.audio.sfx_mixer import AudioSFXMixer
+
+        # Collect SFX to overlay
+        sfx_list = []
+        current_offset = 0.0
+
+        for scene, audio_segment in zip(script.get_all_scenes(), audio_project.segments):
+            # Check if scene has visual SFX
+            if hasattr(scene, 'visual_sfx') and scene.visual_sfx:
+                logger.info(f"Scene {scene.scene_id} has SFX: {scene.visual_sfx}")
+                
+                # Map SFX keyword to audio file
+                mapper = SFXMapper()
+                sfx_path = mapper.get_sfx_path(scene.visual_sfx)
+                
+                if sfx_path and sfx_path.exists():
+                    sfx_list.append((sfx_path, current_offset))
+                    logger.info(f"  → Mapped to: {sfx_path.name} at {current_offset:.2f}s")
+                else:
+                    logger.warning(f"  → SFX file not found for '{scene.visual_sfx}'")
+            
+            # Accumulate offset for next scene
+            current_offset += audio_segment.duration_seconds
+        
+        # Apply SFX overlays if any found
+        if sfx_list:
+            logger.info(f"Applying {len(sfx_list)} SFX overlays to master audio...")
+            
+            mixer = AudioSFXMixer(sfx_volume=0.7)
+            master_audio_path = audio_project.master_audio_path
+            
+            # Create mixed audio with all SFX
+            mixed_audio_path = mixer.overlay_multiple_sfx(
+                master_audio_path,
+                sfx_list,
+                output_path=master_audio_path.with_name(master_audio_path.stem + "_with_sfx.mp3")
+            )
+            
+            # Update audio project to use mixed audio
+            audio_project.master_audio_path = mixed_audio_path
+            logger.info(f"SFX mixing complete: {mixed_audio_path}")
+        else:
+            logger.info("No SFX to overlay")
+        
         return audio_project
 
     async def _run_visual_director(self, script: Script) -> VisualProject:
