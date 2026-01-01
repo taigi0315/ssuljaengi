@@ -243,18 +243,40 @@ class PipelineOrchestrator:
                     {"visual_project": visual_project.model_dump()},
                 )
 
-            # Stage 5: Video Assembly
+            # Stage 5: Assembly (Video) & Metadata
             if self._should_run_stage(start_stage, PipelineStage.VIDEO_ASSEMBLED):
-                logger.info("Stage 5: Assembling video...")
+                logger.info("Stage 5: Assembling video & Generating metadata...")
                 if not visual_project or not audio_project:
                     raise GossipToonException("Visual/Audio projects not available for video assembly")
-                video_project = await self._run_video_assembler(
+                
+                # Run parallel tasks: Video Assembly + Metadata Generation
+                video_task = self._run_video_assembler(
                     visual_project, 
                     audio_project,
-                    script,  # Pass script explicitly
+                    script,
                     engagement_project=engagement_project
                 )
+                
+                metadata_task = self._run_metadata_generator(story, script)
+                
+                # Execute concurrently
+                results = await asyncio.gather(video_task, metadata_task, return_exceptions=True)
+                
+                video_project = results[0]
+                metadata = results[1]
+                
+                # Check for video failure
+                if isinstance(video_project, Exception):
+                    raise video_project
+
+                # Log metadata status
+                if isinstance(metadata, Exception):
+                    logger.warning(f"Metadata generation failed: {metadata}")
+                else:
+                    logger.info("Metadata generation completed successfully")
+
                 completed_stages.append(PipelineStage.VIDEO_ASSEMBLED)
+                
                 self.checkpoint_manager.save_checkpoint(
                     project_id,
                     PipelineStage.VIDEO_ASSEMBLED,
@@ -600,3 +622,40 @@ class PipelineOrchestrator:
         if checkpoint.visual_data and "visual_project" in checkpoint.visual_data:
             return VisualProject.model_validate(checkpoint.visual_data["visual_project"])
         return None
+
+    async def _run_metadata_generator(self, story: Story, script: Script):
+        """Run metadata generator stage.
+        
+        Args:
+            story: Story object
+            script: Script object
+            
+        Returns:
+            YouTubeMetadata object
+        """
+        try:
+            from gossiptoon.agents.metadata_generator import MetadataGeneratorAgent
+            
+            generator = MetadataGeneratorAgent(self.config)
+            metadata = await generator.generate_metadata(story, script)
+            
+            # Save to disk
+            output_dir = self.config.outputs_dir / self.checkpoint_manager.job_id / "youtube"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save formats
+            with open(output_dir / "metadata.json", "w") as f:
+                f.write(metadata.model_dump_json(indent=2))
+                
+            with open(output_dir / "metadata.md", "w") as f:
+                f.write(metadata.to_markdown())
+                
+            with open(output_dir / "metadata.txt", "w") as f:
+                f.write(metadata.to_upload_text())
+                
+            logger.info(f"YouTube metadata saved to: {output_dir}")
+            return metadata
+            
+        except Exception as e:
+            logger.error(f"Metadata generation error: {e}")
+            raise
