@@ -248,6 +248,10 @@ CHARACTER CONSISTENCY REQUIREMENTS:
         else:
             enhanced_prompt = base_prompt
 
+        # Add visual SFX if specified
+        if hasattr(scene, 'visual_sfx') and scene.visual_sfx:
+            enhanced_prompt += f"\n\nINCLUDE: Bold comic-style text sound effect '{scene.visual_sfx}' integrated dramatically into the scene background."
+
         prompt = ImagePrompt(
             scene_id=scene.scene_id,
             base_prompt=enhanced_prompt,

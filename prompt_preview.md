@@ -4,22 +4,6 @@
 
 ---
 
-## ID: portrait_hero
-### Base Prompt
-```text
-Character design sheet for Hero:
-A handsome young man (Hero) sitting at a modern cafe table, looking at his smartphone with wide eyes. Sunlight streams through the window.
-
-FORMAT: Single character full-body portrait on white background.
-VIEW: Front facing, neutral expression.
-STRICTLY SINGLE CHARACTER. NO background elements, NO other people.
-```
-### Negative Prompt
-`text, watermark, blurry, low quality, distorted, speech bubbles, jagged lines, messy sketch, group, couple, multiple people, crowd, background, scenery, text, overlay`
-### Style Applied
-`A panel from a Korean webtoon, digital illustration style, with clean line art and expressive characters. The characters have large, expressive eyes and stylish, contemporary clothing. The background is detailed but clean, with soft, bright digital coloring. The overall aesthetic is modern, clean, and vibrant, typical of a popular romance or drama webtoon.`
-
----
 ## ID: scene_00_intro
 ### Base Prompt
 ```text

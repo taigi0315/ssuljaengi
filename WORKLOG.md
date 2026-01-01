@@ -45,3 +45,8 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Modes**: Rapid (word-by-word, pastel, 70% position) for intense emotions; Sentence (full text, yellow, bottom) for calm narration.
     - **Detection**: Uses `EmotionTone` metadata (anger, excitement, etc.) and text heuristics (exclamation marks, short sentences).
     - **Verification**: Generated ASS file with dual styles, successfully rendered with mode transitions.
+  - **Feature**: Visual Onomatopoeia/SFX (TICKET-011).
+    - **Change**: Added `visual_sfx` optional field to `Scene` model for comic-style sound effect text.
+    - **ScriptWriter**: Updated system prompt with SFX library (DOOM, BAM!, WHAM!, SQUEEZE, etc.) - instructs LLM to suggest SFX for dramatic moments.
+    - **Director**: Modified to inject SFX instructions into image generation prompts when `visual_sfx` is present.
+    - **Note**: Actual text rendering depends on image model capabilities; prompts now include clear SFX instructions.

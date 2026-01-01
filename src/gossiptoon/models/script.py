@@ -36,6 +36,10 @@ class Scene(BaseModel):
     camera_effect: Optional[EffectType] = Field(
         default=None, description="Recommended camera movement/effect for this scene"
     )
+    visual_sfx: Optional[str] = Field(
+        None,
+        description="Optional comic-style sound effect text (e.g., 'BAM!', 'DOOM', 'WHAM!')"
+    )
 
     @field_validator("narration")
     @classmethod

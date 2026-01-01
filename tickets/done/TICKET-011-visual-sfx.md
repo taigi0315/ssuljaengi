@@ -20,13 +20,13 @@ Add comic-style textual sound effects (e.g., "DOOM", "BAM", "SQUEEZE") to the ge
 
 ## Tasks
 
-- [ ] Update `Scene` model to include `visual_sfx` field. <!-- id: 1 -->
-- [ ] Update `ScriptWriter` system prompt with SFX guidelines. <!-- id: 2 -->
-- [ ] Update `Director` to inject SFX into image generation prompts. <!-- id: 3 -->
-- [ ] Verify generated prompts using `preview_prompts.py`. <!-- id: 4 -->
+- [x] Update `Scene` model to include `visual_sfx` field. <!-- id: 1 -->
+- [x] Update `ScriptWriter` system prompt with SFX guidelines. <!-- id: 2 -->
+- [x] Update `Director` to inject SFX into image generation prompts. <!-- id: 3 -->
+- [x] Verify generated prompts using `preview_prompts.py`. <!-- id: 4 -->
 
 ## Acceptance Criteria
 
-- [ ] ScriptAgent generates SFX keywords for dramatic moments.
-- [ ] Image prompts include instructions for these text elements.
-- [ ] Generated images (if model supports text) contain the SFX.
+- [x] ScriptAgent generates SFX keywords for dramatic moments.
+- [x] Image prompts include instructions for these text elements.
+- [x] Generated images (if model supports text) contain the SFX.

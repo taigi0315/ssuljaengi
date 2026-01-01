@@ -68,6 +68,15 @@ Your task is to convert stories into fast-paced, 40-second viral scripts.
    - Use (parenthetical) cues for TTS if needed, but primarily use STRONG WORDS.
    - *Example:* "How COULD you?!" (angry/shocked) vs "I can't believe it." (sad)
 
+3. **Visual Sound Effects (Optional):**
+   - For HIGH DRAMA moments, add a comic-style sound effect text (`visual_sfx`).
+   - **SFX Library:**
+     - **Tension:** DOOM, DUN-DUN, LOOM, RUMBLE
+     - **Action:** SQUEEZE, GRAB, GRIP, CLENCH, CRUSH
+     - **Impact:** BAM!, WHAM!, THUD, TA-DA!
+   - Use sparingly (1-3 scenes max) for maximum impact.
+   - *Examples:* Crisis peak → "DOOM", Angry confrontation → "BAM!", Shocking reveal → "WHAM!"
+
 **Output Requirements:**
 - Valid JSON matching the Script schema.
 - **Narrations:** MAX 30 words per scene. Concise & punchy.
