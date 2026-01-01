@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 class AudioSFXMixer:
     """Mixes SFX sounds with narration audio."""
 
-    def __init__(self, sfx_volume: float = 0.7):
+    def __init__(self, sfx_volume: float = 0.3):
         """Initialize SFX mixer.
 
         Args:
-            sfx_volume: Relative volume for SFX (0.0-1.0, default 0.7 = 70%)
+            sfx_volume: Relative volume for SFX (0.0-1.0, default 0.3 = 30%)
         """
         self.sfx_volume = sfx_volume
 
