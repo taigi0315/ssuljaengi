@@ -461,9 +461,9 @@ async def _discover_stories(
 
         # Initialize crawler
         crawler = RedditCrawler(
-            client_id=config.scraper.reddit_client_id,
-            client_secret=config.scraper.reddit_client_secret,
-            user_agent=config.scraper.reddit_user_agent,
+            client_id=config.api.reddit_client_id,
+            client_secret=config.api.reddit_client_secret,
+            user_agent=config.api.reddit_user_agent,
         )
 
         # Discover stories
