@@ -30,9 +30,7 @@ class APIConfig(BaseModel):
     tavily_api_key: Optional[str] = Field(None, description="Tavily search API key")
     reddit_client_id: Optional[str] = Field(None, description="Reddit client ID")
     reddit_client_secret: Optional[str] = Field(None, description="Reddit client secret")
-    reddit_user_agent: str = Field(
-        default="GossipToon/0.1.0", description="Reddit user agent"
-    )
+    reddit_user_agent: str = Field(default="GossipToon/0.1.0", description="Reddit user agent")
 
     @field_validator("google_api_key", "elevenlabs_api_key")
     @classmethod
@@ -55,12 +53,14 @@ class VideoConfig(BaseModel):
     bitrate: str = Field(default="5M", description="Video bitrate")
 
     # Dynamic Video Configuration
-    target_duration: int = Field(default=40, description="Target video duration in seconds")
+    target_duration: int = Field(default=50, description="Target video duration in seconds")
     min_scenes: int = Field(default=12, description="Minimum number of scenes for dynamic pacing")
-    
+
     # Effect configuration
     ken_burns_enabled: bool = Field(default=True, description="Enable Ken Burns effect")
-    use_ai_camera_effects: bool = Field(default=True, description="Allow AI to choose camera effects per scene")
+    use_ai_camera_effects: bool = Field(
+        default=True, description="Allow AI to choose camera effects per scene"
+    )
     captions_enabled: bool = Field(default=True, description="Enable dynamic captions")
 
     @field_validator("resolution")
@@ -99,11 +99,25 @@ class VideoConfig(BaseModel):
 class AudioConfig(BaseModel):
     """Audio generation configuration."""
 
+    # TTS Provider Selection
+    tts_provider: str = Field(
+        default="elevenlabs", description="TTS provider: 'elevenlabs' or 'google'"
+    )
+
+    # ElevenLabs Configuration
     default_voice_id: str = Field(
         default="21m00Tcm4TlvDq8ikWAM", description="Default ElevenLabs voice ID"
     )
+
+    # Google TTS Configuration
+    google_tts_voice: str = Field(default="Kore", description="Google TTS prebuilt voice name")
+    google_tts_model: str = Field(
+        default="gemini-2.5-flash-preview-tts", description="Google TTS model"
+    )
+
+    # Whisper Configuration
     whisper_model: str = Field(default=DEFAULT_WHISPER_MODEL, description="Whisper model size")
-    
+
     # Audio Dynamics
     speed_factor: float = Field(default=1.1, description="Audio speedup factor (e.g., 1.1 = +10%)")
     normalize_audio: bool = Field(default=True, description="Normalize audio volume")
@@ -203,26 +217,27 @@ class ConfigManager:
             )
 
             self.audio = AudioConfig(
-                default_voice_id=os.getenv(
-                    "DEFAULT_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"
-                ),
+                tts_provider=os.getenv("TTS_PROVIDER", "elevenlabs"),
+                default_voice_id=os.getenv("DEFAULT_VOICE_ID", "21m00Tcm4TlvDq8ikWAM"),
+                google_tts_voice=os.getenv("GOOGLE_TTS_VOICE", "Kore"),
+                google_tts_model=os.getenv("GOOGLE_TTS_MODEL", "gemini-2.5-flash-preview-tts"),
                 whisper_model=os.getenv("WHISPER_MODEL", DEFAULT_WHISPER_MODEL),
             )
 
             self.image = ImageConfig(
                 style=os.getenv(
-                    "IMAGE_STYLE", 
+                    "IMAGE_STYLE",
                     (
                         "A panel from a Korean webtoon, digital illustration style, with clean line art and expressive characters. "
                         "The characters have large, expressive eyes and stylish, contemporary clothing. "
                         "The background is detailed but clean, with soft, bright digital coloring. "
                         "The overall aesthetic is modern, clean, and vibrant, typical of a popular romance or drama webtoon."
-                    )
+                    ),
                 ),
                 aspect_ratio=os.getenv("IMAGE_ASPECT_RATIO", "9:16"),
                 negative_prompt=os.getenv(
-                    "IMAGE_NEGATIVE_PROMPT", 
-                    "text, watermark, blurry, low quality, distorted, speech bubbles, jagged lines, messy sketch"
+                    "IMAGE_NEGATIVE_PROMPT",
+                    "text, watermark, blurry, low quality, distorted, speech bubbles, jagged lines, messy sketch",
                 ),
             )
 
@@ -240,13 +255,13 @@ class ConfigManager:
 
     def set_job_context(self, job_id: str) -> None:
         """Set job context for output directory organization.
-        
+
         Args:
             job_id: Unique job identifier (e.g., project_id)
         """
         job_dir = self._base_output_dir / job_id
         self.app.output_dir = job_dir
-        
+
         # Ensure directories exist
         self.stories_dir
         self.scripts_dir
@@ -254,7 +269,7 @@ class ConfigManager:
         self.images_dir
         self.videos_dir
         self.checkpoints_dir
-        
+
     @staticmethod
     def _get_env(key: str) -> str:
         """Get environment variable or raise error if missing.

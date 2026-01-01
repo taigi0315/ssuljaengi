@@ -1,4 +1,4 @@
-# Agent Behavior Guidelines
+# Agent Behavior Guidelines (v2.0)
 
 ## 1. Language Protocol (Strict)
 
@@ -9,17 +9,24 @@
 
 - **Ticket System**: All work must start from a ticket in `tickets/todo/`.
 - **Ticket Lifecycle**:
-  1.  Create ticket in `tickets/todo/`.
-  2.  Implement & Test.
-  3.  Review checklist (`- [x]`).
-  4.  **MOVE** file to `tickets/done/` BEFORE merging to main.
+
+1. Create ticket in `tickets/todo/`.
+2. Implement & Test (Iterate on the same branch).
+3. Review checklist (`- [x]`).
+4. **MOVE** file to `tickets/done/` as the final commit before the PR.
 
 ## 3. Git & Version Control
 
-- **No Main Commits**: NEVER push to `main` directly.
-- **Branching**: Use feature branches (`feature/xyz`).
+- **Branching Continuity**:
+- Create a **NEW** branch (`feature/xyz` or `fix/xyz`) only when starting a **NEW** ticket.
+- **Debugging/Fixing**: Do **NOT** create a new branch if you are debugging or iterating on the current task. Continue committing to the current active feature branch.
+
+- **Merge Protocol (PRs)**:
+- **No Local Merges**: NEVER merge to `main` locally.
+- **Pull Requests**: Push the feature branch to `origin` and create/request a **Pull Request (PR)**.
+
 - **Secrets**: NEVER commit secrets or `.env` files. Update `.gitignore` if needed.
-- **Commits**: Use **Conventional Commits** (e.g., `feat:`, `fix:`).
+- **Commits**: Use **Conventional Commits** (e.g., `feat:`, `fix:`, `refactor:`).
 
 ## 4. Coding Standards & Hygiene
 

@@ -37,6 +37,12 @@ class ElevenLabsAPIError(APIError):
     pass
 
 
+class GoogleTTSError(APIError):
+    """Raised when Google TTS API calls fail."""
+
+    pass
+
+
 class RedditAPIError(APIError):
     """Raised when Reddit API calls fail."""
 

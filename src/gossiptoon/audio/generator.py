@@ -9,6 +9,7 @@ from typing import Optional
 from gossiptoon.audio.audio_processor import AudioProcessor
 from gossiptoon.audio.base import TTSClient
 from gossiptoon.audio.elevenlabs_client import ElevenLabsClient
+from gossiptoon.audio.google_tts_client import GoogleTTSClient
 from gossiptoon.audio.whisper import WhisperTimestampExtractor
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.core.exceptions import AudioGenerationError
@@ -34,7 +35,7 @@ class AudioGenerator:
 
         Args:
             config: Configuration manager
-            tts_client: Optional TTS client (defaults to ElevenLabs)
+            tts_client: Optional TTS client (auto-selected based on config if not provided)
         """
         self.config = config
 
