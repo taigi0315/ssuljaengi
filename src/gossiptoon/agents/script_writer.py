@@ -136,17 +136,12 @@ Output the complete script as valid JSON following the Schema exactly."""
         """
         self.config = config
         
-        # Configure Google Generative AI directly
-        import google.generativeai as genai
-        genai.configure(api_key=config.api.google_api_key)
-        
-        # Use the native Gemini model
-        self.genai_model = genai.GenerativeModel(
-            model_name="models/gemini-2.5-flash",
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.8,
-                response_mime_type="application/json",  # Keep JSON output
-            ),
+        # Use LangChain's ChatGoogleGenerativeAI
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            temperature=0.8,
+            google_api_key=config.api.google_api_key,
+            transport="rest",  # Use REST API to avoid Vertex AI auth
         )
         self.parser = PydanticOutputParser(pydantic_object=Script)
         self.prompt = self._create_prompt()
@@ -180,31 +175,20 @@ Output the complete script as valid JSON following the Schema exactly."""
         logger.info(f"Generating script for story: {story.id}")
 
         try:
-            # Build the full prompt
-            format_instructions = self.parser.get_format_instructions()
-            user_message = self.USER_PROMPT_TEMPLATE.format(
+            # Build prompt with LangChain
+            messages = self.prompt.format_messages(
                 title=story.title,
                 content=story.content,
                 category=story.category.value,
-                format_instructions=format_instructions,
+                format_instructions=self.parser.get_format_instructions(),
             )
             
-            full_prompt = f"{self.SYSTEM_PROMPT}\n\n{user_message}"
+            # Generate with LangChain
+            logger.info("Calling Gemini via LangChain...")
+            chain = self.llm | self.parser
+            script = await chain.ainvoke(messages)
             
-            # Generate with native Gemini API
-            response = await self.genai_model.generate_content_async(full_prompt)
-            
-            # Extract text and parse JSON
-            response_text = response.text
-            
-            # Clean up potential markdown code blocks
-            if "```json" in response_text:
-                response_text = response_text.split("```json")[1].split("```")[0]
-            elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0]
-            
-            # Parse with Pydantic
-            script = self.parser.parse(response_text)
+            logger.info(f"Received script with {len(script.acts)} acts")
 
             # Validate and enhance script
             script = self._validate_and_enhance_script(script, story)
