@@ -80,22 +80,8 @@ class StoryCategory(str, Enum):
     OTHER = "other"
 
 
-class EffectType(str, Enum):
-    """Available video effects."""
 
-    KEN_BURNS = "ken_burns"
-    FADE_TRANSITION = "fade_transition"
-    CAPTION = "caption"
-    
-    # Camera movements
-    # ZOOM_IN = "zoom_in"
-    # ZOOM_OUT = "zoom_out"
-    # PAN_LEFT = "pan_left"
-    # PAN_RIGHT = "pan_right"
-    # PAN_UP = "pan_up"
-    # PAN_DOWN = "pan_down"
-    # SHAKE = "shake"
-    # STATIC = "static"
+
 
 class CameraEffect(str, Enum):
     """Camera effects for video scenes."""
