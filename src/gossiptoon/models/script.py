@@ -1,6 +1,6 @@
 """Script data models for video generation."""
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -19,7 +19,7 @@ class Scene(BaseModel):
     """A single scene within an act."""
 
     scene_id: str = Field(..., description="Unique scene identifier")
-    act: ActType = Field(..., description="Which act this scene belongs to")
+    act: Optional[ActType] = Field(None, description="Which act this scene belongs to")
     order: int = Field(ge=0, description="Scene order within act")
     narration: str = Field(..., min_length=10, max_length=500, description="Scene narration")
     emotion: EmotionTone = Field(..., description="Emotion tone for TTS")
@@ -39,6 +39,48 @@ class Scene(BaseModel):
         None,
         description="Optional comic-style sound effect text (e.g., 'BAM!', 'DOOM', 'WHAM!')"
     )
+
+    @field_validator("emotion", mode="before")
+    @classmethod
+    def validate_emotion_robust(cls, v: Any) -> Any:
+        try:
+            # If it's a string, check if it's a valid enum value
+            if isinstance(v, str):
+                # Normalize case
+                v = v.lower()
+                # Check if valid
+                if any(e.value == v for e in EmotionTone):
+                    return v
+            # If we get here (or if it's already an enum), let Pydantic handle it or fail
+            # But to be robust, we can map common errors or default to NEUTRAL
+            start_val = v.lower() if isinstance(v, str) else str(v)
+            if start_val not in [e.value for e in EmotionTone]:
+                print(f"Warning: Invalid emotion '{v}', defaulting to 'neutral'")
+                return EmotionTone.NEUTRAL
+        except Exception:
+            pass
+        return v
+
+    @field_validator("camera_effect", mode="before")
+    @classmethod
+    def validate_camera_effect_robust(cls, v: Any) -> Any:
+        if v is None:
+            return None
+        try:
+            if isinstance(v, str):
+                v_lower = v.lower()
+                if any(e.value == v_lower for e in CameraEffect):
+                    return v_lower
+                
+                # Handle common hallucinations
+                if v_lower == "quick_cuts":
+                    return CameraEffect.SHAKE # Best approx
+                
+                print(f"Warning: Invalid camera_effect '{v}', defaulting to 'static'")
+                return CameraEffect.STATIC
+        except Exception:
+            pass
+        return v
 
     @field_validator("narration")
     @classmethod
@@ -87,20 +129,7 @@ class Scene(BaseModel):
 
     class Config:
         """Pydantic config."""
-
-        json_schema_extra = {
-            "example": {
-                "scene_id": "scene_hook_01",
-                "act": "hook",
-                "order": 0,
-                "narration": "You won't believe what happened at my sister's wedding last week.",
-                "emotion": "shocked",
-                "visual_description": "A shocked young woman in casual clothes, "
-                "standing in a modern living room, hands on her face in disbelief",
-                "characters_present": ["narrator"],
-                "estimated_duration_seconds": 4.5,
-            }
-        }
+        pass
 
 
 class Act(BaseModel):
@@ -128,8 +157,9 @@ class Act(BaseModel):
             ValueError: If scene order is invalid
         """
         for idx, scene in enumerate(v):
+            # Auto-correct scene order from LLM (often 1-based)
             if scene.order != idx:
-                raise ValueError(f"Scene order mismatch at index {idx}: expected {idx}, got {scene.order}")
+                scene.order = idx
         return v
 
     @field_validator("target_duration_seconds")
@@ -281,13 +311,4 @@ class Script(BaseModel):
 
     class Config:
         """Pydantic config."""
-
-        json_schema_extra = {
-            "example": {
-                "script_id": "script_20250101_abc123",
-                "story_id": "story_20250101_abc123",
-                "title": "The Wedding Disaster",
-                "total_estimated_duration": 55.0,
-                "target_audience": "18-35 years old",
-            }
-        }
+        pass

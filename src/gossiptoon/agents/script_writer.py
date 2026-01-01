@@ -7,10 +7,10 @@ from typing import Any
 
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, HarmBlockThreshold, HarmCategory
 
 from gossiptoon.core.config import ConfigManager
-from gossiptoon.core.constants import ACT_DURATION_RANGES, ActType, EmotionTone
+from gossiptoon.core.constants import ACT_DURATION_RANGES, ActType, EmotionTone, CameraEffect
 from gossiptoon.core.exceptions import ScriptGenerationError
 from gossiptoon.models.script import Act, Scene, Script
 from gossiptoon.models.story import Story
@@ -22,83 +22,28 @@ logger = logging.getLogger(__name__)
 class ScriptWriterAgent:
     """Agent for converting stories into structured 5-act video scripts."""
 
-    SYSTEM_PROMPT = """You are an expert YouTube Shorts scriptwriter specializing in high-dopamine, dramatic storytelling.
+    SYSTEM_PROMPT = """You are a master scriptwriter for YouTube Shorts.
 
-Your task is to convert stories into fast-paced, 40-second viral scripts.
+**Task**: distinct scenes for a 5-Act video script.
 
-**CORE REQUIREMENT: SPEED & DYNAMICS**
-- **TOTAL DURATION:** 30-40 seconds STRICT. 
-- **SCENE COUNT:** At least 12 scenes (approx 2-3 seconds per scene).
-- **CUTTING PACE:** FAST. Never stay on one image for >4 seconds.
+**Goal**: Maximize viewer retention through fast pacing and strong emotional engagement.
 
-**Five-Act Structure (TIMING IS CRITICAL):**
+**Vibe**: High energy, dramatic, emotional, but SAFE for general audiences.
+- Focus on emotional reactions rather than extreme shock.
+- Use natural language.
+- Keep it punchy.
 
-1. HOOK (0-3s): ⚡ PURE SHOCK (COLD OPEN) ⚡
-   - **MANDATORY:** Start with the MOST shocking moment of the story (Flash Forward).
-   - Use an OUTBURST, SCREAM, or SHOCKING STATEMENT.
-   - **BANNED:** "My name is...", "I am...", context, or slow introductions.
-   - *Format:* Start "In Media Res". If the story is chronological, CUT TO THE CLIMAX for 3 seconds, then rewind in Act 2.
-   - *Example:* "HE FOUND THE BODY!!" (followed by 'Let me explain...')
+**Structure (Five Acts):**
+1. **The Hook** (0-3s): Immediate attention grabber.
+2. **Setup** (3-10s): Context and background.
+3. **Escalation** (10-20s): Tension builds.
+4. **Climax** (20-35s): Peak moment.
+5. **Resolution** (35-45s): Outcome or twist.
 
-2. BUILD (3-10s): ⚡ FAST CONTEXT (REWIND) ⚡
-   - Quickly establish Who/What/Where.
-   - Use "It started when..." or "Here's what happened."
-   - Catch up to the present moment RAPIDLY.
-
-3. CRISIS (10-20s): ⚡ TENSION SPIKE ⚡
-   - The conflict escalates immediately.
-
-4. CLIMAX (20-32s): ⚡ THE EXPLOSION ⚡
-   - The peak confrontation or realization.
-
-5. RESOLUTION (32-40s): ⚡ THE TWIST/PAYOFF ⚡
-   - Quick ending, leave them satisfied or shocked.
-
-**AI DIRECTOR INSTRUCTIONS (Visuals & Audio):**
-1. **Camera Effects:** You MUST choose a camera effect for EVERY scene:
-   - `zoom_in`: For realizations, shock, intensity.
-   - `zoom_out`: For revealing context or isolation.
-   - `pan_left`/`pan_right`: For movement or following action.
-   - `shake`: For yelling, chaos, or extreme anger (USE FOR HOOK).
-   - `static`: (Rarely used) for deadpan humor or silence.
-
-2. **Emotional Dialogue:**
-   - Write dialogue with INTENSE emotion.
-   - **STRICTLY USE ONLY THESE EMOTIONS:** excited, shocked, sympathetic, dramatic, angry, happy, sad, neutral, suspenseful, sarcastic.
-   - Use (parenthetical) cues for TTS if needed, but primarily use STRONG WORDS.
-   - *Example:* "How COULD you?!" (angry/shocked) vs "I can't believe it." (sad)
-
-3. **Visual Sound Effects (Optional):**
-   - For HIGH DRAMA moments, add a comic-style sound effect text (`visual_sfx`).
-   - **SFX Library** (~3 seconds each):
-     
-     **Tension/Atmosphere** (Sub-bass + Cinematic):
-     - **DOOM**: Massive orchestral brass hit, heavy sub-bass drop, dark ominous reveal
-     - **DUN-DUN**: Double orchestral hit, shocking realization, TV drama suspense
-     - **LOOM**: Dark ambient drone swelling, menacing hum, horror atmosphere
-     - **RUMBLE**: Deep earthquake rumble, rocks grinding, disaster atmosphere
-     
-     **Action/Grip** (Foley + Close-up texture):
-     - **SQUEEZE**: Rubber/leather twisted hard, friction squeak, stress ball
-     - **GRAB**: Fast air whoosh + fabric slap, aggressive grab
-     - **GRIP**: Leather glove tightening, creaking fabric, heavy tension
-     - **CLENCH**: Fabric tearing, knuckles cracking, muscle tension
-     - **CRUSH**: Loud crunching, wood splintering, destroying object
-     
-     **Impact/Presence** (Transient + Decay):
-     - **BAM!**: Superhero punch, explosive snare drum, cartoon combat hit
-     - **WHAM!**: Heavy metallic collision, concrete impact, industrial crash
-     - **THUD**: Dead weight falling, body fall, dull muted impact
-     - **TA-DA!**: Magical success fanfare, bright brass, victory reveal
-   
-   - Use sparingly (2-4 scenes max) for maximum impact.
-   - **Selection Guide**: Match SFX to scene emotion and visual action.
-     *Examples:* 
-     - Overwhelming threat → "DOOM"
-     - Shocking discovery → "DUN-DUN"
-     - Violent confrontation → "BAM!" or "WHAM!"
-     - Tension building → "LOOM"
-     - Victory/reveal → "TA-DA!"
+**Guidelines:**
+- **Pacing**: Use short sentences. Fast cuts.
+- **Narrator**: dynamic, expressive storyteller.
+- **Visuals**: Clear, descriptive prompts for image generation.
 
 **Output Requirements:**
 - Valid JSON matching the Script schema.
@@ -128,6 +73,9 @@ Your task is to convert stories into fast-paced, 40-second viral scripts.
 
 Output the complete script as valid JSON following the Schema exactly."""
 
+    MAX_SCENES = 15
+    MIN_SCENES = 12
+
     def __init__(self, config: ConfigManager) -> None:
         """Initialize Script Writer Agent.
 
@@ -136,27 +84,49 @@ Output the complete script as valid JSON following the Schema exactly."""
         """
         self.config = config
         
-        # Use LangChain's ChatGoogleGenerativeAI
-        self.llm = ChatGoogleGenerativeAI(
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+
+        # Use LangChain's ChatGoogleGenerativeAI with structured output
+        llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             temperature=0.8,
             google_api_key=config.api.google_api_key,
+            safety_settings=safety_settings,
         )
-        self.parser = PydanticOutputParser(pydantic_object=Script)
+        self.structured_llm = llm.with_structured_output(Script)
         self.prompt = self._create_prompt()
 
     def _create_prompt(self) -> ChatPromptTemplate:
-        """Create prompt template with Pydantic parser.
+        """Create prompt template with specific constraints.
 
         Returns:
             Chat prompt template
         """
+        # Explicitly list allowed values for better adherence
+        emotion_list = [e.value for e in EmotionTone]
+        act_types = [a.value for a in ActType]
+        camera_effects = [c.value for c in CameraEffect]
+
+        # Enhance system prompt with allowed lists
+        enhanced_system_prompt = self.SYSTEM_PROMPT + f"""
+        
+**STRICT SCHEMA ENFORCEMENT:**
+- **EmotionTone MUST be one of**: {', '.join(emotion_list)}
+- **ActType MUST be one of**: {', '.join(act_types)}
+- **CameraEffect MUST be one of**: {', '.join(camera_effects)}
+- **scene_id**: Use format 'scene_01', 'scene_02', etc.
+"""
         return ChatPromptTemplate.from_messages(
             [
-                ("system", self.SYSTEM_PROMPT),
+                ("system", enhanced_system_prompt),
                 ("human", self.USER_PROMPT_TEMPLATE),
             ]
-        ).partial(format_instructions=self.parser.get_format_instructions())
+        )
 
     @retry_with_backoff(max_retries=3, exceptions=(ScriptGenerationError,))
     async def write_script(self, story: Story) -> Script:
@@ -174,18 +144,17 @@ Output the complete script as valid JSON following the Schema exactly."""
         logger.info(f"Generating script for story: {story.id}")
 
         try:
-            # Build prompt with LangChain
+            # Build prompt with LangChain (no format instructions needed for strict mode)
             messages = self.prompt.format_messages(
                 title=story.title,
                 content=story.content,
                 category=story.category.value,
-                format_instructions=self.parser.get_format_instructions(),
+                format_instructions="", # Managed by with_structured_output
             )
             
-            # Generate with LangChain
-            logger.info("Calling Gemini via LangChain...")
-            chain = self.llm | self.parser
-            script = await chain.ainvoke(messages)
+            # Generate with LangChain Structured Output
+            logger.info("Calling Gemini 2.5 Flash via structured output...")
+            script = await self.structured_llm.ainvoke(messages)
             
             logger.info(f"Received script with {len(script.acts)} acts")
 
@@ -235,6 +204,12 @@ Output the complete script as valid JSON following the Schema exactly."""
 
         # Check narration lengths
         self._validate_narration_lengths(script)
+
+        # Backfill scene.act from parent Act if missing (Gemini optimization)
+        for act in script.acts:
+            for scene in act.scenes:
+                if scene.act is None:
+                    scene.act = act.act_type
 
         return script
 
