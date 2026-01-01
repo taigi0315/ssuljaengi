@@ -144,10 +144,7 @@ Output the complete script as valid JSON following the Schema exactly."""
         )
         
         # Apply structured output to enforce Pydantic schema at generation time
-        self.structured_llm = self.llm.with_structured_output(
-            Script,
-            method="json_mode",  # Use JSON mode for schema enforcement
-        )
+        self.structured_llm = self.llm.with_structured_output(Script)
         
         self.prompt = self._create_prompt()
 
