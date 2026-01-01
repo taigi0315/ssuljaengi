@@ -10,11 +10,12 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI, HarmBlockThreshold, HarmCategory
 
 from gossiptoon.core.config import ConfigManager
-from gossiptoon.core.constants import ACT_DURATION_RANGES, ActType, EmotionTone, CameraEffect
+from gossiptoon.core.constants import ACT_DURATION_RANGES, ActType, EmotionTone, CameraEffectType
 from gossiptoon.core.exceptions import ScriptGenerationError
 from gossiptoon.models.script import Act, Scene, Script
 from gossiptoon.models.story import Story
 from gossiptoon.utils.retry import retry_with_backoff
+from gossiptoon.agents.script_evaluator import ScriptEvaluator
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class ScriptWriterAgent:
 
     SYSTEM_PROMPT = """You are a master scriptwriter for YouTube Shorts.
 
-**Task**: distinct scenes for a 5-Act video script.
+**Task**: Write a compelling, viral 5-Act video script based on a Reddit story.
 
 **Goal**: Maximize viewer retention through fast pacing and strong emotional engagement.
 
@@ -34,22 +35,18 @@ class ScriptWriterAgent:
 - Keep it punchy.
 
 **Structure (Five Acts):**
-1. **The Hook** (0-3s): Immediate attention grabber.
+1. **The Hook** (0-3s): Immediate attention grabber. "Flash Forward" to the climax or a shocking statement.
 2. **Setup** (3-10s): Context and background.
 3. **Escalation** (10-20s): Tension builds.
 4. **Climax** (20-35s): Peak moment.
 5. **Resolution** (35-45s): Outcome or twist.
 
-**Guidelines:**
-- **Pacing**: Use short sentences. Fast cuts.
-- **Narrator**: dynamic, expressive storyteller.
-- **Visuals**: Clear, descriptive prompts for image generation.
-
-**Output Requirements:**
-- Valid JSON matching the Script schema.
+**Output Format**:
+You can write the script in a loose JSON format or structured blocks. Focus on the CONTENT:
 - **Narrations:** MAX 30 words per scene. Concise & punchy.
-- **Visual Descriptions:** Detailed, atmospheric, focusing on facial expressions.
-- **Scene Count:** Target 12-15 scenes total.
+- **Visuals:** Vivid, comic-book style descriptions.
+- **Emotions:** Describe the emotion (e.g., "angry", "sad", "shocked").
+- **Camera:** Suggest camera moves (e.g., "zoom in", "pan left").
 """
 
     USER_PROMPT_TEMPLATE = """Convert this Reddit story into a high-tempo YouTube Short:
@@ -71,7 +68,7 @@ class ScriptWriterAgent:
 
 {format_instructions}
 
-Output the complete script as valid JSON following the Schema exactly."""
+Output the draft script. Focus on creativity. Formatting will be handled by the editor."""
 
     MAX_SCENES = 15
     MIN_SCENES = 12
@@ -91,15 +88,15 @@ Output the complete script as valid JSON following the Schema exactly."""
             HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         }
 
-        # Use LangChain's ChatGoogleGenerativeAI with structured output
-        llm = ChatGoogleGenerativeAI(
+        # Use LangChain's ChatGoogleGenerativeAI (Unstructured for creativity)
+        self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
-            temperature=0.8,
+            temperature=0.9, # High temperature for creativity
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
         )
-        self.structured_llm = llm.with_structured_output(Script)
         self.prompt = self._create_prompt()
+        self.evaluator = ScriptEvaluator(config)
 
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create prompt template with specific constraints.
@@ -107,23 +104,10 @@ Output the complete script as valid JSON following the Schema exactly."""
         Returns:
             Chat prompt template
         """
-        # Explicitly list allowed values for better adherence
-        emotion_list = [e.value for e in EmotionTone]
-        act_types = [a.value for a in ActType]
-        camera_effects = [c.value for c in CameraEffect]
-
-        # Enhance system prompt with allowed lists
-        enhanced_system_prompt = self.SYSTEM_PROMPT + f"""
-        
-**STRICT SCHEMA ENFORCEMENT:**
-- **EmotionTone MUST be one of**: {', '.join(emotion_list)}
-- **ActType MUST be one of**: {', '.join(act_types)}
-- **CameraEffect MUST be one of**: {', '.join(camera_effects)}
-- **scene_id**: Use format 'scene_01', 'scene_02', etc.
-"""
+        # Simplify Prompt - No strict enums
         return ChatPromptTemplate.from_messages(
             [
-                ("system", enhanced_system_prompt),
+                ("system", self.SYSTEM_PROMPT),
                 ("human", self.USER_PROMPT_TEMPLATE),
             ]
         )
@@ -144,21 +128,25 @@ Output the complete script as valid JSON following the Schema exactly."""
         logger.info(f"Generating script for story: {story.id}")
 
         try:
-            # Build prompt with LangChain (no format instructions needed for strict mode)
+            # Build prompt
             messages = self.prompt.format_messages(
                 title=story.title,
                 content=story.content,
                 category=story.category.value,
-                format_instructions="", # Managed by with_structured_output
+                format_instructions="", 
             )
             
-            # Generate with LangChain Structured Output
-            logger.info("Calling Gemini 2.5 Flash via structured output...")
-            script = await self.structured_llm.ainvoke(messages)
-            
-            logger.info(f"Received script with {len(script.acts)} acts")
+            # Step 1: Generate Creative Draft (Unstructured)
+            logger.info("Generating creative draft script (unstructured)...")
+            response = await self.llm.ainvoke(messages)
+            draft_content = response.content
+            logger.info(f"Draft generated (length: {len(draft_content)} chars)")
 
-            # Validate and enhance script
+            # Step 2: Evaluate and Format (Strict)
+            logger.info("Calling Script Evaluator to format and validate...")
+            script = await self.evaluator.evaluate_and_fix(draft_content, story)
+
+            # Validate and enhance script (Metadata, etc)
             script = self._validate_and_enhance_script(script, story)
 
             logger.info(f"Generated script with {script.get_scene_count()} scenes")

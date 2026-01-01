@@ -112,7 +112,15 @@ to maximize viewer engagement (comments, shares, retention).
             
             engagement_project = await self.structured_llm.ainvoke(messages)
             
+            if engagement_project is None:
+                raise ValueError("LLM returned None (empty response or parsing failure)")
+
             logger.info("ENGAGEMENT WRITER: Gemini API call successful!")
+            
+            logger.info(
+                f"Generated {len(engagement_project.hooks)} engagement hooks: "
+                f"{[h.hook_id for h in engagement_project.hooks]}"
+            )
             return engagement_project
 
         except Exception as e:
@@ -150,13 +158,6 @@ to maximize viewer engagement (comments, shares, retention).
                 hooks=fallback_hooks,
                 strategy="Fallback strategy due to API quota"
             )
-
-        logger.info(
-            f"Generated {len(engagement_project.hooks)} engagement hooks: "
-            f"{[h.hook_id for h in engagement_project.hooks]}"
-        )
-
-        return engagement_project
 
     def _format_script_summary(self, script: Script) -> str:
         """Format script for LLM analysis.

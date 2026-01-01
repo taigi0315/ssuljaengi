@@ -28,10 +28,10 @@ WHISPER_MODELS = ["tiny", "base", "small", "medium", "large"]
 DEFAULT_WHISPER_MODEL = "base"
 
 # Script configuration
-MIN_SCRIPT_DURATION = 30.0  # seconds (was 30.0)
-MAX_SCRIPT_DURATION = 45.0  # seconds (was 60.0)
-TARGET_SCRIPT_DURATION = 40.0  # seconds (was 55.0)
-MAX_SCENE_NARRATION_WORDS = 30  # tighter constraints for speed (was 50)
+MIN_SCRIPT_DURATION = 40.0  # seconds (was 30.0)
+MAX_SCRIPT_DURATION = 60.0  # seconds (matches YouTube Shorts max)
+TARGET_SCRIPT_DURATION = 55.0  # seconds (target sweet spot)
+MAX_SCENE_NARRATION_WORDS = 35  # slightly relaxed but still concise
 MAX_CHARACTERS_PER_VIDEO = 5
 
 # ... (Image config unchanged) ...
@@ -84,7 +84,7 @@ class StoryCategory(str, Enum):
 
 
 
-class CameraEffect(str, Enum):
+class CameraEffectType(str, Enum):
     """Camera effects for video scenes."""
 
     KEN_BURNS = "ken_burns"

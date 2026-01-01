@@ -127,9 +127,10 @@ class BaseAgent:
 
 **File**: `src/gossiptoon/agents/script_writer.py`
 
-**Responsibility**: Transform Reddit story → 5-act dramatic script
+**Responsibility**: Transform Reddit story → 5-act dramatic script (Creative Draft)
+**Delegation**: Uses `ScriptEvaluator` for final validation.
 
-**Input**: `Story` (title, body, subreddit)  
+**Input**: `Story` (title, content, subreddit)
 **Output**: `Script` (acts, scenes, narrations, emotions, SFX)
 
 **System Prompt Structure**:
@@ -188,12 +189,26 @@ class ScriptWriter:
         return script
 ```
 
-**Why LangChain?**
-
 1. **Type Safety**: Pydantic validation ensures correct structure
 2. **Retry Logic**: Built-in error handling
 3. **Prompt Management**: Easy to version and test prompts
 4. **Traceability**: LangSmith integration for debugging
+
+### ScriptEvaluator Agent
+
+**File**: `src/gossiptoon/agents/script_evaluator.py`
+
+**Responsibility**: Validate and Polish the Draft Script.
+
+**The "Rules" it Checks**:
+
+1.  **Strict Schema Compliance**: Ensures the output perfectly matches the `Script` Pydantic model.
+2.  **Enum Mapping**: Auto-corrects hallucinations (e.g., converts "mad" -> `EmotionTone.ANGRY`, "zoom" -> `CameraEffectType.ZOOM_IN`).
+3.  **Structure**: Enforces exactly 5 Acts (Hook, Setup, Crisis, Climax, Resolution).
+4.  **Timing & Pacing**:
+    - Total duration must be 50-60 seconds.
+    - Calculates scene duration based on word count (approx 2.5 words/sec).
+5.  **Safety**: Filters out content that violates safety guidelines (via Gemini API settings).
 
 ### VisualDirector Agent
 
