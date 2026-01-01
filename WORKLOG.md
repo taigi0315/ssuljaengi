@@ -85,6 +85,7 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Status**: Backend complete - ready for TICKET-017 (text overlay rendering).
 
 - **2025-12-31 (Evening)**: Completed engagement system implementation and bug fixes.
+
   - **Feature**: Engagement Text Overlay (TICKET-017).
     - **Component**: `EngagementOverlayGenerator` - ASS format renderer for hooks.
     - **Rendering**: Top-positioned (10% from top), style-based colors (Yellow/Orange/Pink/Blue/Red).
@@ -96,3 +97,12 @@ This document records the narrative of changes for the Ssuljaengi project.
     - Made OPENAI_API_KEY optional and deprecated in config.
   - **Enhancement**: Added comprehensive logging for debugging pipeline stages.
   - **Status**: All code complete (SFX 50% + EngagementWriter + Text Overlays). Gemini API testing pending.
+
+- **2025-12-31 (Late Night Debugging)**: Diagnosed API quota issues.
+  - **Issue**: Gemini API free tier quota exhausted for all models.
+  - **Root Cause**: `gemini-2.0-flash-exp`, `gemini-1.5-flash`, and image models all hit quota limits.
+  - **Workaround**: Temporarily disabled EngagementWriter for pipeline testing.
+  - **Partial Success**: Audio generation with SFX completed successfully (Stage 3).
+  - **Blocked**: Visual generation failed due to image model quota.
+  - **Added**: `frustrated` and `determined` emotions to EmotionTone enum.
+  - **Status**: All code 100% complete. Awaiting Gemini quota reset for full E2E test.
