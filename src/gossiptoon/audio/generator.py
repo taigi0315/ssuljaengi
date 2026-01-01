@@ -11,6 +11,7 @@ from gossiptoon.audio.base import TTSClient
 from gossiptoon.audio.elevenlabs_client import ElevenLabsClient
 from gossiptoon.audio.whisper import WhisperTimestampExtractor
 from gossiptoon.core.config import ConfigManager
+from gossiptoon.core.constants import EmotionTone
 from gossiptoon.core.exceptions import AudioGenerationError
 from gossiptoon.models.audio import AudioProject, AudioSegment
 from gossiptoon.models.script import Script

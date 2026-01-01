@@ -328,3 +328,60 @@ This document records the narrative of changes for the Ssuljaengi project.
     - ✅ Backward compatibility maintained
 
   - **Next Steps (Sprint 3)**: Update ScriptWriter agent to generate webtoon-style scripts with audio_chunks and director_notes.
+
+## [2026-01-01] Sprint 3: Webtoon Script Generation (Completed)
+
+- **Action**: Updated ScriptWriter to generate multi-character webtoon scripts.
+- **Components Modified**:
+  - `src/gossiptoon/agents/script_writer.py`: Added webtoon mode, dynamic prompts, and chunk validation.
+  - `src/gossiptoon/core/config.py`: Added `ScriptConfig` with `webtoon_mode` and character limits.
+  - `src/gossiptoon/agents/script_evaluator.py`: Enhanced validation for audio chunks and bubble metadata.
+- **Key Features**:
+  - **Dynamic Prompting**: Switches between `SYSTEM_PROMPT` (Webtoon) and `LEGACY_SYSTEM_PROMPT` (Narration) based on config.
+  - **Character Limits**: Configurable `max_dialogue_chars` (default 100) and `max_narration_chars`.
+  - **Readable Output**: `_save_readable_script` now visualizes panels, bubbles, and audio chunks.
+  - **Backward Compatibility**: Fully supports legacy `narration`-only scenes via `is_webtoon_style()` check.
+- **Testing**:
+  - Created `tests/unit/test_script_writer_webtoon.py` (Unit tests with mocks).
+  - Created `tests/integration/test_webtoon_e2e.py` (Mocked E2E flow).
+  - Validated strict Pydantic models (Scene, AudioChunk) and adjusted logic to match constraints.
+- **Documentation**:
+  - Updated `docs/WEBTOON_ENGINE.md` with implementation details.
+  - Updated `WORKLOG.md`.
+- **Status**: Ready for Sprint 4 (Video Assembler & Visuals).
+
+## [2026-01-01] TICKET-024: Code Cleanup & E2E Debugging (Continued Fix) ✅
+
+- **Action**: Fixed critical circular import issue in AudioGenerator.
+- **Issue**: `NameError: name 'EmotionTone' is not defined` during audio generation causing pipeline failure on first run.
+- **Root Cause**: Circular import dependency chain:
+  - `generator.py` → imports `EmotionTone` from `script.py`
+  - `script.py` → imports `AudioChunk` from `audio.py`
+  - `audio.py` → imports `EmotionTone` from `constants.py`
+  - This caused `EmotionTone` to be `None` when `generator.py` initialized
+- **Fix**: Changed `generator.py` line 14 to import `EmotionTone` directly from `gossiptoon.core.constants`, breaking the circular dependency.
+- **Verification**:
+  - ✅ Import test successful, `EmotionTone.NEUTRAL` accessible
+  - ✅ Full E2E pipeline run successful on first execution (project_20260101_155619)
+  - ✅ Generated 15.1s video with 19 audio segments, 5 scenes, 4 characters
+  - ✅ All features working: chunk-level audio, engagement overlays, hybrid subtitles, Ken Burns effects
+- **Status**: VERIFIED - Pipeline runs successfully from start to finish without errors.
+
+## [2026-01-01] TICKET-024: Code Cleanup & E2E Debugging (Verified)
+
+- **Action**: Performed deep audit, detailed logging implementation, and final E2E verification of the Webtoon Engine.
+- **Components Modified**:
+  - `src/gossiptoon/utils/llm_debugger.py`: Created centralized LLM logging utility.
+  - `src/gossiptoon/agents/script_evaluator.py`: Integrated `LLMDebugger` and added robust error logging with `try/finally`.
+  - `src/gossiptoon/audio/generator.py`: Fixed `NameError` (circular import issue with `EmotionTone` - now imports directly from `constants.py`).
+  - `src/gossiptoon/video/assembler.py`: Refactored DDA logic for better testability.
+- **Debugging & Findings**:
+  - **Auth Issue**: Identified `401 API keys are not supported` error; resolved by user API key update.
+  - **Script Pipeline**: Confirmed `ScriptWriter` correctly generates Webtoon-style JSON.
+  - **Audio Pipeline**: Fixed crash in chunk generation due to missing import.
+- **Verification**:
+  - **Run ID**: `project_20260101_153916`
+  - **Result**: **SUCCESS** - Full 20s video generated.
+  - **Artifact**: `outputs/project_20260101_153916/videos/reddit_aita_social_media_kids.mp4`
+  - **Verified Features**: Multi-character dialogue, chunk synchronization, visual generation, video assembly.
+- **Status**: TICKET-024 Closed. Pipeline is stable and verified.

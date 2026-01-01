@@ -10,6 +10,8 @@ from langchain_core.output_parsers import (
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.models.story import Story
 from gossiptoon.models.script import Script, Scene, Act, ActType, EmotionTone, CameraEffectType
+from gossiptoon.utils.llm_debugger import LLMDebugger
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +97,10 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
             convert_system_message_to_human=True,
         )
         self.structured_llm = self.llm.with_structured_output(Script)
+        
+        # Initialize Debugger
+        # Assumes scripts_dir is outputs/{job_id}/scripts
+        self.debugger = LLMDebugger(self.config.scripts_dir.parent)
 
     async def evaluate_and_fix(self, draft_content: str, story: Story) -> Script:
         """Process the draft script into a valid Script object."""
@@ -114,15 +120,37 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
         chain = prompt | self.structured_llm
 
         try:
-            script = await chain.ainvoke(
-                {
-                    "story_title": story.title,
-                    "story_body": story.content,
-                    "draft": draft_content,
-                    "valid_emotions": valid_emotions,
-                    "valid_effects": valid_effects,
-                }
-            )
+            # 1. Format Prompt
+            input_data = {
+                "story_title": story.title,
+                "story_body": story.content,
+                "draft": draft_content,
+                "valid_emotions": valid_emotions,
+                "valid_effects": valid_effects,
+            }
+            formatted_prompt = await prompt.ainvoke(input_data)
+
+            # 2. Call LLM with Debugging
+            start_time = datetime.now()
+            script = None
+            error = None
+            
+            try:
+                script = await self.structured_llm.ainvoke(formatted_prompt)
+            except Exception as e:
+                error = str(e)
+                raise e
+            finally:
+                duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+                
+                # 3. Log Interaction
+                self.debugger.log_interaction(
+                    agent_name="ScriptEvaluator",
+                    prompt=formatted_prompt,
+                    response=script if script else {"error": error},
+                    metadata={"story_id": story.id},
+                    duration_ms=duration_ms
+                )
 
             logger.info(
                 f"Script evaluated: {len(script.acts)} acts, {script.get_scene_count()} scenes."

@@ -504,6 +504,7 @@ async def test_assemble_video_mocked(mock_config, sample_visual_project, sample_
     video_project = await assembler.assemble_video(
         sample_visual_project,
         sample_audio_project,
+        script=MagicMock(),
     )
 
     assert video_project.script_id == "test_script"
@@ -577,9 +578,11 @@ async def test_full_video_pipeline_mocked(mock_config, sample_visual_project, sa
     assembler._execute_ffmpeg = AsyncMock(side_effect=mock_execute)
 
     # Run full assembly
+    # Run full assembly
     video_project = await assembler.assemble_video(
         sample_visual_project,
         sample_audio_project,
+        script=MagicMock(),
     )
 
     # Verify video project

@@ -15,6 +15,7 @@ from gossiptoon.core.exceptions import ScriptGenerationError
 from gossiptoon.models.script import Act, Scene, Script
 from gossiptoon.models.story import Story
 from gossiptoon.utils.retry import retry_with_backoff
+from gossiptoon.utils.llm_debugger import LLMDebugger
 from gossiptoon.agents.script_evaluator import ScriptEvaluator
 
 logger = logging.getLogger(__name__)
@@ -286,6 +287,7 @@ Generate scenes with:
         }
 
         # Use LangChain's ChatGoogleGenerativeAI (Unstructured for creativity)
+        # Revert to Gemini 2.5 Flash as per WEBTOON_ENGINE.md
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             temperature=0.9,  # High temperature for creativity
@@ -294,6 +296,15 @@ Generate scenes with:
         )
         self.prompt = self._create_prompt()
         self.evaluator = ScriptEvaluator(config)
+        
+        # Initialize Debugger
+        # Assumes scripts_dir is outputs/{job_id}/scripts, so parent is outputs/{job_id}
+        self.debugger = LLMDebugger(self.config.scripts_dir.parent)
+
+        # Log masked API key for verification
+        key = config.api.google_api_key
+        masked_key = f"{key[:4]}...{key[-4:]}" if key and len(key) > 8 else "INVALID"
+        logger.info(f"Initialized ScriptWriter with model=gemini-2.5-flash, key={masked_key}")
 
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create prompt template with specific constraints.
@@ -304,11 +315,14 @@ Generate scenes with:
         # Inject config values into system prompt
         if self.config.script.webtoon_mode:
             system_prompt = self.SYSTEM_PROMPT.replace(
-                "MAX 30 words", f"MAX {self.config.script.max_dialogue_chars} characters"
+                "MAX 30 words", 
+                f"MAX {self.config.script.max_dialogue_chars} characters"
             )
+            # Escape braces for LangChain formatting (JSON examples)
+            system_prompt = system_prompt.replace("{", "{{").replace("}", "}}")
             user_prompt = self.USER_PROMPT_TEMPLATE
         else:
-            system_prompt = self.LEGACY_SYSTEM_PROMPT
+            system_prompt = self.LEGACY_SYSTEM_PROMPT.replace("{", "{{").replace("}", "}}")
             user_prompt = self.LEGACY_USER_PROMPT_TEMPLATE
 
         # Simplify Prompt - No strict enums
@@ -345,7 +359,28 @@ Generate scenes with:
 
             # Step 1: Generate Creative Draft (Unstructured)
             logger.info("Generating creative draft script (unstructured)...")
-            response = await self.llm.ainvoke(messages)
+            start_time = datetime.now()
+            
+            try:
+                response = await self.llm.ainvoke(messages)
+            except Exception as inner_e:
+                logger.error(f"LLM Invoke Failed: {inner_e}")
+                raise inner_e
+
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            
+            # Log interaction
+            try:
+                self.debugger.log_interaction(
+                    agent_name="ScriptWriter",
+                    prompt=messages,
+                    response=response,
+                    metadata={"story_id": story.id, "mode": "webtoon" if self.config.script.webtoon_mode else "legacy"},
+                    duration_ms=duration_ms
+                )
+            except Exception as log_e:
+                logger.warning(f"Failed to log interaction: {log_e}")
+
             draft_content = response.content
             logger.info(f"Draft generated (length: {len(draft_content)} chars)")
 
