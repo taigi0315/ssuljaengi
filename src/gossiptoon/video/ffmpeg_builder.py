@@ -151,18 +151,22 @@ class FFmpegBuilder:
             output_file=output_file,
         )
         
-        # Add subtitle filters if provided
+        # Add subtitle filters if provided (MUST be chained, not separate -vf calls)
         subtitle_filters = []
         if options.get("subtitles_path"):
-            subtitle_filters.append(str(options["subtitles_path"]).replace(":", "\\\\:"))
+            # Escape colons for FFmpeg path format
+            escaped_path = str(options["subtitles_path"]).replace(":", "\\\\:")
+            subtitle_filters.append(f"subtitles={escaped_path}")
         if engagement_overlay:
-            subtitle_filters.append(str(engagement_overlay).replace(":", "\\\\:"))
+            # Escape colons for FFmpeg path format
+            escaped_path = str(engagement_overlay).replace(":", "\\\\:")
+            subtitle_filters.append(f"subtitles={escaped_path}")
         
         if subtitle_filters:
-            # Apply both subtitle files using subtitles filter
-            for i, subtitle_file in enumerate(subtitle_filters):
-                # Add to output options
-                command.output_options.extend(["-vf", f"subtitles={subtitle_file}"])
+            # Chain all subtitle filters together with commas (single -vf)
+            combined_filter = ",".join(subtitle_filters)
+            command.output_options.extend(["-vf", combined_filter])
+            logger.info(f"Added subtitle filters: {combined_filter}")
 
         logger.info(f"FFmpeg command: {command.to_string()}")
 
