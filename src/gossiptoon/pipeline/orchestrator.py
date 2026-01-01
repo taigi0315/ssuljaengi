@@ -198,9 +198,9 @@ class PipelineOrchestrator:
                     {"script": script.model_dump()},
                 )
 
-            # Stage 2.5: Engagement Hook Generation
+            # Stage 2.5: Engagement Hook Generation (DISABLED - Gemini quota exhausted)
             engagement_project = None
-            if self._should_run_stage(start_stage, PipelineStage.ENGAGEMENT_GENERATED):
+            if False:  # Temporarily disabled - Gemini free tier quota exceeded
                 logger.info("="*60)
                 logger.info("Stage 2.5: Generating engagement hooks...")
                 logger.info("="*60)
