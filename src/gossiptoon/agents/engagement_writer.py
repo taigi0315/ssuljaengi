@@ -62,7 +62,7 @@ to maximize viewer engagement (comments, shares, retention).
             api_key: OpenAI API key (optional, uses env var if not provided)
         """
         self.llm = ChatOpenAI(
-            model="gpt-4",
+            model="gpt-4o",  # Use gpt-4o instead of gpt-4
             temperature=0.8,  # Higher for creative hooks
             api_key=api_key,
         )
