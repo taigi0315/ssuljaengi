@@ -219,7 +219,7 @@ Generate scenes with this structure:
             config: Configuration manager
         """
         self.config = config
-        
+
         safety_settings = {
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -230,7 +230,7 @@ Generate scenes with this structure:
         # Use LangChain's ChatGoogleGenerativeAI (Unstructured for creativity)
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
-            temperature=0.9, # High temperature for creativity
+            temperature=0.9,  # High temperature for creativity
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
         )
@@ -272,9 +272,9 @@ Generate scenes with this structure:
                 title=story.title,
                 content=story.content,
                 category=story.category.value,
-                format_instructions="", 
+                format_instructions="",
             )
-            
+
             # Step 1: Generate Creative Draft (Unstructured)
             logger.info("Generating creative draft script (unstructured)...")
             response = await self.llm.ainvoke(messages)
@@ -314,7 +314,9 @@ Generate scenes with this structure:
         """
         # Generate script ID if not set
         if not script.script_id or script.script_id == "string":
-            script.script_id = f"script_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{story.id.split('_')[-1]}"
+            script.script_id = (
+                f"script_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{story.id.split('_')[-1]}"
+            )
 
         # Set story ID
         if not script.story_id or script.story_id == "string":
@@ -372,9 +374,7 @@ Generate scenes with this structure:
         Args:
             script: Script to validate
         """
-        total_duration = sum(
-            scene.estimated_duration_seconds for scene in script.get_all_scenes()
-        )
+        total_duration = sum(scene.estimated_duration_seconds for scene in script.get_all_scenes())
 
         if total_duration < 50:
             logger.warning(f"Script duration {total_duration}s is short (target 55-58s)")
@@ -408,14 +408,14 @@ Generate scenes with this structure:
 
         if len(characters) > 5:
             logger.warning(
-        f"Script has {len(characters)} characters (recommended max 5 for visual consistency)"
+                f"Script has {len(characters)} characters (recommended max 5 for visual consistency)"
             )
 
         logger.info(f"Script characters: {', '.join(characters)}")
 
     def _validate_audio_chunks(self, script: Script) -> None:
         """Validate audio chunks in webtoon-style scenes or narration in legacy scenes.
-        
+
         Args:
             script: Script to validate
         """
@@ -425,7 +425,7 @@ Generate scenes with this structure:
                 if not scene.audio_chunks:
                     logger.warning(f"Webtoon scene {scene.scene_id} has no audio_chunks")
                     continue
-                
+
                 # Validate chunk text lengths
                 for chunk in scene.audio_chunks:
                     word_count = len(chunk.text.split())
@@ -433,13 +433,13 @@ Generate scenes with this structure:
                         logger.warning(
                             f"Chunk {chunk.chunk_id} text is long ({word_count} words, max 30)"
                         )
-                    
+
                     # Validate director_notes
                     if len(chunk.director_notes) < 10:
                         logger.warning(
                             f"Chunk {chunk.chunk_id} has short director_notes ({len(chunk.director_notes)} chars, min 10)"
                         )
-                
+
                 # Validate bubble_metadata matches dialogue chunks
                 if hasattr(scene, "get_dialogue_chunks"):
                     dialogue_chunks = scene.get_dialogue_chunks()
@@ -476,7 +476,7 @@ Generate scenes with this structure:
 
     def _save_readable_script(self, script: Script, output_path: Any) -> None:
         """Save human-readable version of script (supports webtoon style).
-        
+
         Args:
             script: Script to save
             output_path: Path to save to
@@ -498,36 +498,39 @@ Generate scenes with this structure:
                     f.write(f"Duration: {scene.estimated_duration_seconds}s\n")
                     f.write(f"Emotion: {scene.emotion.value}\n")
                     f.write(f"Characters: {', '.join(scene.characters_present)}\n\n")
-                    
+
                     # Check if webtoon-style
                     if hasattr(scene, "is_webtoon_style") and scene.is_webtoon_style():
                         # Webtoon format
                         if scene.panel_layout:
                             f.write(f"PANEL LAYOUT:\n{scene.panel_layout}\n\n")
-                        
+
                         f.write(f"AUDIO CHUNKS ({len(scene.audio_chunks)}):\n")
                         for i, chunk in enumerate(scene.audio_chunks, 1):
-                            f.write(f"\n  [{i}] {chunk.chunk_type.value.upper()} - {chunk.speaker_id}")
+                            f.write(
+                                f"\n  [{i}] {chunk.chunk_type.value.upper()} - {chunk.speaker_id}"
+                            )
                             if hasattr(chunk, "speaker_gender") and chunk.speaker_gender:
                                 f.write(f" ({chunk.speaker_gender})")
                             f.write("\n")
                             f.write(f"      Text: {chunk.text}\n")
                             f.write(f"      Director: {chunk.director_notes}\n")
                             if hasattr(chunk, "bubble_position") and chunk.bubble_position:
-                                f.write(f"      Bubble: {chunk.bubble_position} ({chunk.bubble_style})\n")
-                        
+                                f.write(
+                                    f"      Bubble: {chunk.bubble_position} ({chunk.bubble_style})\n"
+                                )
+
                         if scene.bubble_metadata:
                             f.write(f"\n  CHAT BUBBLES ({len(scene.bubble_metadata)}):\n")
                             for bubble in scene.bubble_metadata:
-                                f.write(f"    - {bubble.character_name}: \"{bubble.text}\" ")
+                                f.write(f'    - {bubble.character_name}: "{bubble.text}" ')
                                 f.write(f"[{bubble.position}, {bubble.style}]\n")
                     else:
                         # Legacy format
                         if scene.narration:
                             f.write(f"NARRATION:\n{scene.narration}\n\n")
-                    
+
                     f.write(f"\nVISUAL:\n{scene.visual_description}\n\n")
                     f.write("-" * 40 + "\n\n")
 
         logger.info(f"Readable script saved to {output_path}")
-```
