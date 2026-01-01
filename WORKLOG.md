@@ -175,3 +175,23 @@ This document records the narrative of changes for the Ssuljaengi project.
     - `ScriptEvaluator`: New agent that validates drafts against strict Pydantic `Script` schema, enforcing Enum mapping (`mad` -> `ANGRY`) and structure (5 Acts).
   - **Cleanup**: Renamed `CameraEffect` to `CameraEffectType` across `constants.py` and `models/*.py` to resolve class name collisions permanently.
   - **Verification**: Implemented `tests/manual/test_script_writer_refactor.py`. Code logic verified; execution paused by Gemini API quota (429).
+
+- **2026-01-01 (Image Generation Restoration + Pipeline Fixes)**: TICKET-024 + Hotfixes.
+
+  - **Critical Fix**: Image Generation Model Restoration.
+    - **Issue**: `imagen-3.0-generate-001` and `image-generation-002` returned `404 Not Found` (paid tier only).
+    - **Solution**: Switched to `gemini-2.5-flash-image` (free tier, multimodal API).
+    - **Implementation**: Removed invalid `response_mime_type` config; images now return as `inline_data`.
+    - **Documentation**: Created `docs/IMAGE_GENERATION.md` with debugging history and critical model warnings.
+  - **Fix**: Retry Logic Enhancement.
+    - **Issue**: Gemini occasionally returns text instead of images (intermittent failure).
+    - **Solution**: Changed retry intervals from exponential (1s→2s→4s) to fixed (1s→10s→30s) for rate limiting.
+    - **Implementation**: Added `custom_intervals` parameter to `retry_with_backoff` decorator.
+  - **Fix**: EngagementWriter NoneType Error.
+    - **Issue**: LLM occasionally returns `None`, causing pipeline crash.
+    - **Solution**: Added null check and error handling with fallback.
+  - **Fix**: SFX Design Flaw.
+    - **Issue**: Visual SFX text (e.g., "BOOM") triggered audio SFX warnings.
+    - **Solution**: Decoupled visual SFX from audio SFX lookup; only map if keyword exists in library.
+  - **Merge**: PR #1 merged to `main` (24 files, +634/-178 lines).
+  - **Result**: Full E2E pipeline successful with 10 scene images generated.
