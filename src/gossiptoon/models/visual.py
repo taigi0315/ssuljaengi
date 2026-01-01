@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from gossiptoon.core.constants import CameraEffect
+from gossiptoon.core.constants import CameraEffectType
 
 
 class CharacterConsistency(BaseModel):
@@ -114,7 +114,7 @@ class VisualAsset(BaseModel):
     characters_rendered: list[str] = Field(
         default_factory=list, description="Characters that appear in this image"
     )
-    camera_effect: Optional[CameraEffect] = Field(
+    camera_effect: Optional[CameraEffectType] = Field(
         default=None, description="Camera effect to apply (pan/zoom/etc)"
     )
     width: int = Field(default=1080, description="Image width in pixels")

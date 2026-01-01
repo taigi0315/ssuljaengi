@@ -166,3 +166,12 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Issue**: `CameraEffect` class name collision and FFmpeg filter graph conflicts.
     - **Fix**: Renamed Enum to `CameraEffectType`; chained subtitle filters inside `filter_complex`.
     - **Result**: End-to-end video generation successful (63s duration).
+
+- **2026-01-01 (Script Evaluation Architecture)**: TICKET-023 Refactor.
+
+  - **Objective**: Decouple creative writing from strict schema validation.
+  - **Refactor**: Split `ScriptWriterAgent` into:
+    - `ScriptWriterAgent`: Focuses on creative storytelling, pacing, and viral hooks (Unstructured output).
+    - `ScriptEvaluator`: New agent that validates drafts against strict Pydantic `Script` schema, enforcing Enum mapping (`mad` -> `ANGRY`) and structure (5 Acts).
+  - **Cleanup**: Renamed `CameraEffect` to `CameraEffectType` across `constants.py` and `models/*.py` to resolve class name collisions permanently.
+  - **Verification**: Implemented `tests/manual/test_script_writer_refactor.py`. Code logic verified; execution paused by Gemini API quota (429).

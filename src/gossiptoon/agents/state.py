@@ -41,6 +41,7 @@ class GossipToonState(TypedDict):
 
     # Pipeline data
     story: Optional[Story]
+    draft_script: Optional[str]
     script: Optional[Script]
     audio_project: Optional[AudioProject]
     visual_project: Optional[VisualProject]
@@ -72,6 +73,7 @@ class WorkflowBuilder:
         # Add nodes (these will be implemented as the pipeline progresses)
         self.graph.add_node("find_story", self._find_story_node)
         self.graph.add_node("write_script", self._write_script_node)
+        self.graph.add_node("evaluate_script", self._evaluate_script_node)
         self.graph.add_node("generate_audio", self._generate_audio_node)
         self.graph.add_node("create_visuals", self._create_visuals_node)
         self.graph.add_node("assemble_video", self._assemble_video_node)
@@ -80,7 +82,8 @@ class WorkflowBuilder:
         # Define flow
         self.graph.set_entry_point("find_story")
         self.graph.add_edge("find_story", "write_script")
-        self.graph.add_edge("write_script", "generate_audio")
+        self.graph.add_edge("write_script", "evaluate_script")
+        self.graph.add_edge("evaluate_script", "generate_audio")
         self.graph.add_edge("generate_audio", "create_visuals")
         self.graph.add_edge("create_visuals", "assemble_video")
         self.graph.add_edge("assemble_video", END)
@@ -128,17 +131,39 @@ class WorkflowBuilder:
             state: Current workflow state
 
         Returns:
-            Updated state with script
+            Updated state with draft script
         """
         logger.info("Node: write_script")
         state["current_step"] = "write_script"
 
         try:
-            # Script writing logic will be implemented by pipeline orchestrator
-            logger.info("Script writing node executed (placeholder)")
+            # Creative script writing logic (delegates to ScriptWriterAgent)
+            logger.info("Script writing node executed (placeholder - produces draft)")
             return state
         except Exception as e:
             logger.error(f"Script writing failed: {e}")
+            state["errors"].append(str(e))
+            state["retry_count"] += 1
+            return state
+
+    def _evaluate_script_node(self, state: GossipToonState) -> GossipToonState:
+        """Node for validating and correcting the script.
+
+        Args:
+            state: Current workflow state
+
+        Returns:
+            Updated state with validated script
+        """
+        logger.info("Node: evaluate_script")
+        state["current_step"] = "evaluate_script"
+
+        try:
+            # Script evaluation logic (delegates to ScriptEvaluator)
+            logger.info("Script evaluation node executed (placeholder)")
+            return state
+        except Exception as e:
+            logger.error(f"Script evaluation failed: {e}")
             state["errors"].append(str(e))
             state["retry_count"] += 1
             return state
@@ -255,6 +280,7 @@ def create_initial_state() -> GossipToonState:
     return {
         "messages": [],
         "story": None,
+        "draft_script": None,
         "script": None,
         "audio_project": None,
         "visual_project": None,

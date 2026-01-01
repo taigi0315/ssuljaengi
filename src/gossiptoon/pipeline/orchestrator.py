@@ -426,17 +426,24 @@ class PipelineOrchestrator:
         for scene, audio_segment in zip(script.get_all_scenes(), audio_project.segments):
             # Check if scene has visual SFX
             if hasattr(scene, 'visual_sfx') and scene.visual_sfx:
-                logger.info(f"Scene {scene.scene_id} has SFX: {scene.visual_sfx}")
-                
                 # Map SFX keyword to audio file
                 mapper = SFXMapper()
-                sfx_path = mapper.get_sfx_path(scene.visual_sfx)
+                sfx_key = scene.visual_sfx.upper().strip()
                 
-                if sfx_path and sfx_path.exists():
-                    sfx_list.append((sfx_path, current_offset))
-                    logger.info(f"  → Mapped to: {sfx_path.name} at {current_offset:.2f}s")
+                # Check if it's a known Audio SFX keyword
+                # This decouples "Visual Text" (e.g. "AITA?") from "Audio Cues" (e.g. "BAM!")
+                if sfx_key in mapper.list_available_sfx():
+                    logger.info(f"Scene {scene.scene_id} has Audio SFX: {scene.visual_sfx}")
+                    sfx_path = mapper.get_sfx_path(scene.visual_sfx)
+                    
+                    if sfx_path and sfx_path.exists():
+                        sfx_list.append((sfx_path, current_offset))
+                        logger.info(f"  → Mapped to: {sfx_path.name} at {current_offset:.2f}s")
+                    else:
+                        logger.warning(f"  → Audio SFX file missing for '{scene.visual_sfx}'")
                 else:
-                    logger.warning(f"  → SFX file not found for '{scene.visual_sfx}'")
+                    # It's purely visual text (comic style)
+                    logger.debug(f"Scene {scene.scene_id} has Visual-only SFX: {scene.visual_sfx} (No audio mapped)")
             
             # Accumulate offset for next scene
             current_offset += audio_segment.duration_seconds

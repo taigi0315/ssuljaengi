@@ -16,10 +16,19 @@ logger = logging.getLogger(__name__)
 class GeminiImageClient(ImageClient):
     """Google Gemini image generation client.
 
+    CRITICAL: This client MUST use model "gemini-2.5-flash-image" for image generation.
+    
+    DO NOT change the model to:
+    - imagen-3.0-generate-001 (404 - requires paid tier)
+    - image-generation-002 (404 - requires paid tier)
+    - gemini-2.0-flash-exp (does NOT support image generation)
+    
+    See docs/IMAGE_GENERATION.md for full implementation details and debugging history.
+    
     Supports:
-    - Gemini 2.0 Flash Experimental (imagen-3.0-generate-001)
-    - 9:16 aspect ratio for Shorts
-    - Image-to-image for character consistency
+    - Free tier image generation via gemini-2.5-flash-image
+    - 9:16 aspect ratio for YouTube Shorts
+    - Text-to-image generation
     """
 
     def __init__(
@@ -65,7 +74,11 @@ class GeminiImageClient(ImageClient):
                 logger.error("Google Auth Error: invalid_grant.")
             raise GeminiAPIError(f"Failed to initialize Gemini client: {e}") from e
 
-    @retry_with_backoff(max_retries=3, exceptions=(GeminiAPIError, ImageGenerationError))
+    @retry_with_backoff(
+        max_retries=3,
+        exceptions=(GeminiAPIError, ImageGenerationError),
+        custom_intervals=[1.0, 10.0, 30.0],  # Fixed intervals: 1s, 10s, 30s for rate limiting
+    )
     async def generate_image(
         self,
         prompt: ImagePrompt,
@@ -99,73 +112,63 @@ class GeminiImageClient(ImageClient):
                 output_path = Path(f"image_{hash(full_prompt)}.png")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # Generate images
-            try:
-                # Attempt generation with configured model (likely to fail if unbilled)
-                response = client.models.generate_images(
-                    model=self.model,
-                    prompt=full_prompt,
-                    config={
-                        'number_of_images': 1,
-                        'aspect_ratio': '9:16',
-                        'safety_filter_level': 'block_only_high',
-                        'person_generation': 'allow_adult',
-                    }
-                )
-                
-                if not response.generated_images:
-                    raise ImageGenerationError("Gemini did not return any images.")
+            # Use Gemini 2.5 Flash Image (official image generation model)
+            # Docs: https://ai.google.dev/gemini-api/docs/image-generation
+            from google import genai
+            from google.genai import types
 
-                # Save the first image
-                response.generated_images[0].image.save(output_path)
-                logger.info(f"Image saved to {output_path}")
-                return output_path
+            logger.info(f"Generating image with Gemini 2.5 Flash Image")
+            logger.debug(f"Prompt: {prompt.base_prompt[:100]}...")
 
-            except Exception as e:
-                logger.warning(f"Gemini API generation failed: {e}. Falling back to placeholder.")
-                return self._generate_placeholder(prompt, output_path)
+            # Build full prompt
+            full_prompt = prompt.build_full_prompt()
+            
+            # Create client with API key
+            client = genai.Client(api_key=self.api_key)
+
+            # Generate image with Gemini 2.5 Flash Image model
+            image_prompt = f"""Generate a 9:16 vertical image for a YouTube Short video.
+
+Visual description: {full_prompt}
+
+Style: Cinematic digital art, dramatic lighting, 8k quality.
+Do not include any text or watermarks."""
+
+            # Use Gemini 2.5 Flash Image (correct model name)
+            response = client.models.generate_content(
+                model="gemini-2.5-flash-image",
+                contents=[image_prompt],
+            )
+            
+            # Check for image in response parts
+            image_data = None
+            for part in response.parts:
+                if part.inline_data is not None:
+                    # Image comes back as inline_data automatically
+                    image_data = part.inline_data.data
+                    break
+
+            if not image_data:
+                # Try to see if there's an error or empty content
+                 logger.warning(f"Gemini response structure: {response}")
+                 raise ImageGenerationError("Gemini did not return an image data (inline_data).")
+
+            # Save image
+            if output_path is None:
+                output_path = Path(f"image_{hash(full_prompt)}.png")
+
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Write image bytes directly
+            with open(output_path, "wb") as f:
+                f.write(image_data)
+
+            logger.info(f"Image saved to {output_path}")
+            return output_path
 
         except Exception as e:
-             # Catch init errors or other unexpected crashes
-            logger.error(f"Gemini image generation failed completely: {e}")
-            # Even here, try fallback if client init failed
-            try:
-                logger.warning("Attempting fallback after total failure...")
-                return self._generate_placeholder(prompt, output_path)
-            except Exception as fallback_error:
-                raise ImageGenerationError(f"Image generation failed: {e}") from fallback_error
-
-    def _generate_placeholder(self, prompt: ImagePrompt, output_path: Optional[Path]) -> Path:
-        """Generate a placeholder image using PIL."""
-        from PIL import Image, ImageDraw, ImageFont
-        import random
-
-        width, height = 1080, 1920  # 9:16
-        
-        # Random background color
-        color = (random.randint(50, 200), random.randint(50, 200), random.randint(50, 200))
-        img = Image.new('RGB', (width, height), color=color)
-        d = ImageDraw.Draw(img)
-        
-        # Add text
-        text = f"Scene: {prompt.scene_id}\n(Placeholder)"
-        try:
-            # Try to load a font, otherwise default
-            #font = ImageFont.truetype("Arial.ttf", 60)
-            font = ImageFont.load_default()
-        except:
-            font = ImageFont.load_default()
-            
-        # Draw text in center (approx)
-        d.text((width//2, height//2), text, fill=(255, 255, 255), anchor="mm", font=font)
-        
-        if output_path is None:
-            output_path = Path(f"placeholder_{prompt.scene_id}.png")
-            
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        img.save(output_path)
-        logger.info(f"Placeholder image saved to {output_path}")
-        return output_path
+            logger.error(f"Gemini image generation failed: {e}")
+            raise ImageGenerationError(f"Image generation failed: {e}") from e
 
     def get_model_name(self) -> str:
         """Get model name.

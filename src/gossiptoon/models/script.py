@@ -10,7 +10,7 @@ from gossiptoon.core.constants import (
     MAX_SCRIPT_DURATION,
     MIN_SCRIPT_DURATION,
     ActType,
-    CameraEffect,
+    CameraEffectType,
     EmotionTone,
 )
 
@@ -32,7 +32,7 @@ class Scene(BaseModel):
     estimated_duration_seconds: float = Field(
         ge=0.5, le=15.0, description="Estimated scene duration (shorter max for faster pacing)"
     )
-    camera_effect: Optional[CameraEffect] = Field(
+    camera_effect: Optional[CameraEffectType] = Field(
         default=None, description="Recommended camera movement/effect for this scene"
     )
     visual_sfx: Optional[str] = Field(
@@ -69,15 +69,15 @@ class Scene(BaseModel):
         try:
             if isinstance(v, str):
                 v_lower = v.lower()
-                if any(e.value == v_lower for e in CameraEffect):
+                if any(e.value == v_lower for e in CameraEffectType):
                     return v_lower
                 
                 # Handle common hallucinations
                 if v_lower == "quick_cuts":
-                    return CameraEffect.SHAKE # Best approx
+                    return CameraEffectType.SHAKE # Best approx
                 
                 print(f"Warning: Invalid camera_effect '{v}', defaulting to 'static'")
-                return CameraEffect.STATIC
+                return CameraEffectType.STATIC
         except Exception:
             pass
         return v

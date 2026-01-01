@@ -6,7 +6,7 @@ into specific FFmpeg filter configurations.
 
 from typing import Any, Optional
 
-from gossiptoon.core.constants import CameraEffect as CameraEffectType
+from gossiptoon.core.constants import CameraEffectType
 from gossiptoon.video.effects.base import Effect, EffectConfig
 from gossiptoon.video.effects.ken_burns import KenBurnsConfig, KenBurnsEffect
 

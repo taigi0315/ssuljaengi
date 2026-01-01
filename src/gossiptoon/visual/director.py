@@ -43,7 +43,7 @@ class VisualDirector:
         # Use provided image client or default to Gemini
         self.image_client = image_client or GeminiImageClient(
             api_key=config.api.google_api_key,
-            model="imagen-3.0-generate-001",
+            model="image-generation-002",  # Fallback to stable Imagen 2 (Imagen 3 requires whitelist/preview)
         )
 
         logger.info(f"Visual Director initialized with {self.image_client.get_model_name()}")
@@ -166,26 +166,21 @@ STRICTLY SINGLE CHARACTER. NO background elements, NO other people."""
             output_path = self.config.images_dir / "characters" / script.script_id / f"{char_name.lower().replace(' ', '_')}_portrait.png"
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            try:
-                portrait_path = await self.image_client.generate_image(
-                    prompt=portrait_prompt,
-                    output_path=output_path,
-                )
+            portrait_path = await self.image_client.generate_image(
+                prompt=portrait_prompt,
+                output_path=output_path,
+            )
 
-                # Add to character bank with portrait as reference
-                character_bank.add_character(
-                    character_name=char_name,
-                    reference_image_path=portrait_path,
-                    description=char_description,
-                    first_appearance_scene_id="portrait",
-                    appearance_tags=[],
-                )
+            # Add to character bank with portrait as reference
+            character_bank.add_character(
+                character_name=char_name,
+                reference_image_path=portrait_path,
+                description=char_description,
+                first_appearance_scene_id="portrait",
+                appearance_tags=[],
+            )
 
-                logger.info(f"Generated portrait for {char_name}: {portrait_path}")
-
-            except Exception as e:
-                logger.warning(f"Failed to generate portrait for {char_name}: {e}")
-                # Continue without portrait - will use scene-based approach as fallback
+            logger.info(f"Generated portrait for {char_name}: {portrait_path}")
 
     def _get_character_description_from_script(
         self,
