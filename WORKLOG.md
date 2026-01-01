@@ -56,3 +56,6 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Library**: DOOM, DUN-DUN, LOOM, RUMBLE, SQUEEZE, GRAB, GRIP, CLENCH, CRUSH, BAM!, WHAM!, THUD, TA-DA!.
     - **Licensing**: Created CREDITS.md for CC0/CC-BY attribution.
     - **Status**: Infrastructure ready - audio files need to be downloaded/generated.
+    - **Update**: All 12 SFX audio files (.mp3, ~3s each) created and placed by user.
+    - **Descriptions**: Added detailed SFX_DESCRIPTIONS to SFXMapper for AI selection guidance.
+    - **ScriptWriter**: Enhanced system prompt with complete SFX characteristics (sub-bass, foley, transients).

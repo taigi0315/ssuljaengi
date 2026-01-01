@@ -70,12 +70,35 @@ Your task is to convert stories into fast-paced, 40-second viral scripts.
 
 3. **Visual Sound Effects (Optional):**
    - For HIGH DRAMA moments, add a comic-style sound effect text (`visual_sfx`).
-   - **SFX Library:**
-     - **Tension:** DOOM, DUN-DUN, LOOM, RUMBLE
-     - **Action:** SQUEEZE, GRAB, GRIP, CLENCH, CRUSH
-     - **Impact:** BAM!, WHAM!, THUD, TA-DA!
-   - Use sparingly (1-3 scenes max) for maximum impact.
-   - *Examples:* Crisis peak → "DOOM", Angry confrontation → "BAM!", Shocking reveal → "WHAM!"
+   - **SFX Library** (~3 seconds each):
+     
+     **Tension/Atmosphere** (Sub-bass + Cinematic):
+     - **DOOM**: Massive orchestral brass hit, heavy sub-bass drop, dark ominous reveal
+     - **DUN-DUN**: Double orchestral hit, shocking realization, TV drama suspense
+     - **LOOM**: Dark ambient drone swelling, menacing hum, horror atmosphere
+     - **RUMBLE**: Deep earthquake rumble, rocks grinding, disaster atmosphere
+     
+     **Action/Grip** (Foley + Close-up texture):
+     - **SQUEEZE**: Rubber/leather twisted hard, friction squeak, stress ball
+     - **GRAB**: Fast air whoosh + fabric slap, aggressive grab
+     - **GRIP**: Leather glove tightening, creaking fabric, heavy tension
+     - **CLENCH**: Fabric tearing, knuckles cracking, muscle tension
+     - **CRUSH**: Loud crunching, wood splintering, destroying object
+     
+     **Impact/Presence** (Transient + Decay):
+     - **BAM!**: Superhero punch, explosive snare drum, cartoon combat hit
+     - **WHAM!**: Heavy metallic collision, concrete impact, industrial crash
+     - **THUD**: Dead weight falling, body fall, dull muted impact
+     - **TA-DA!**: Magical success fanfare, bright brass, victory reveal
+   
+   - Use sparingly (2-4 scenes max) for maximum impact.
+   - **Selection Guide**: Match SFX to scene emotion and visual action.
+     *Examples:* 
+     - Overwhelming threat → "DOOM"
+     - Shocking discovery → "DUN-DUN"
+     - Violent confrontation → "BAM!" or "WHAM!"
+     - Tension building → "LOOM"
+     - Victory/reveal → "TA-DA!"
 
 **Output Requirements:**
 - Valid JSON matching the Script schema.
