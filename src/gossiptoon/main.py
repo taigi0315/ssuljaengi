@@ -11,7 +11,7 @@ Usage:
 import asyncio
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import click
 from rich.console import Console
@@ -435,7 +435,7 @@ def _display_error(result):
 
 
 async def _discover_stories(
-    subreddits: list[str],
+    subreddits: List[str],
     time_filter: str,
     limit: int,
     min_upvotes: int,
