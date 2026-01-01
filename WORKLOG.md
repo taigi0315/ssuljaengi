@@ -242,3 +242,49 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **Solution**: Decoupled visual SFX from audio SFX lookup; only map if keyword exists in library.
   - **Merge**: PR #1 merged to `main` (24 files, +634/-178 lines).
   - **Result**: Full E2E pipeline successful with 10 scene images generated.
+
+- **2026-01-01 (Webtoon Engine Refactor - Sprint 2)**: Fragmented Audio Generation with Master Clock.
+
+  - **Objective**: Enable chunk-level TTS generation for multi-character dialogue with precise timing synchronization.
+
+  - **Phase 1: Chunk-Level Audio Generation**:
+    - **New Method**: `_generate_chunk_audio()` - Generates audio for individual AudioChunk
+      - Accepts `audio_chunk`, `scene_id`, `global_offset` parameters
+      - Uses `director_notes` as `style_instruction` for Google TTS
+      - Falls back to emotion-based TTS for ElevenLabs
+      - Extracts word-level timestamps with Whisper
+      - Returns AudioSegment with Master Clock offset
+    - **Voice Selection**: `_select_voice_for_speaker()` - Smart voice assignment
+      - Narrator uses default voice
+      - Characters use gender-based voice selection (Google TTS API)
+      - Consistent voice per character using hash-based indexing
+      - Supports both male and female voices
+    - **Scene Chunks**: `_generate_scene_audio_chunks()` - Processes all chunks in scene
+      - Iterates through audio_chunks in order
+      - Maintains Master Clock offset across chunks
+      - Returns list of AudioSegments with cumulative offset
+
+  - **Phase 2: Master Clock Implementation**:
+    - **Timeline Tracking**: Added `current_offset` variable to track global timeline
+    - **Offset Calculation**: Each chunk's `global_offset` = previous chunk's end time
+    - **Precision**: Ensures exact timing for chat bubble synchronization
+    - **Backward Compatible**: Legacy scenes also get `global_offset` assigned
+
+  - **Phase 3: AudioGenerator Refactor**:
+    - **Hybrid Support**: `generate_audio_project()` now supports both:
+      - Legacy narration-based scenes (single audio per scene)
+      - Webtoon-style scenes (fragmented audio chunks)
+    - **Detection**: Uses `scene.is_webtoon_style()` to determine processing mode
+    - **Master Clock**: Total duration calculated from final offset (not sum of segments)
+    - **Logging**: Enhanced logging for chunk-level generation and voice selection
+
+  - **Files Modified**:
+    - `src/gossiptoon/audio/generator.py` - Added 157 lines for chunk-level generation
+
+  - **Testing**:
+    - ✅ AudioGenerator imports successfully
+    - ✅ New methods available and functional
+    - ✅ Master Clock support verified
+    - ✅ Backward compatibility maintained
+
+  - **Next Steps (Sprint 3)**: Update ScriptWriter agent to generate webtoon-style scripts with audio_chunks and director_notes.
