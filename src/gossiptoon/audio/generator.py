@@ -39,13 +39,9 @@ class AudioGenerator:
         self.config = config
 
         # Use provided TTS client or default to ElevenLabs
-        self.tts_client = tts_client or ElevenLabsClient(
-            api_key=config.api.elevenlabs_api_key
-        )
+        self.tts_client = tts_client or ElevenLabsClient(api_key=config.api.elevenlabs_api_key)
 
-        self.whisper = WhisperTimestampExtractor(
-            model_name=config.audio.whisper_model
-        )
+        self.whisper = WhisperTimestampExtractor(model_name=config.audio.whisper_model)
 
         self.processor = AudioProcessor()
 
@@ -55,6 +51,9 @@ class AudioGenerator:
         voice_id: Optional[str] = None,
     ) -> AudioProject:
         """Generate complete audio project for script.
+
+        Supports both legacy narration-based scenes and new webtoon-style
+        multi-character dialogue scenes.
 
         This is the CRITICAL PATH that creates the master clock.
 
@@ -72,20 +71,38 @@ class AudioGenerator:
             voice_id = self.config.audio.default_voice_id
 
         logger.info(f"Generating audio project for script: {script.script_id}")
-        logger.info(f"Voice: {voice_id}")
+        logger.info(f"Default voice: {voice_id}")
 
         try:
             # Generate audio for each scene
             segments = []
+            current_offset = 0.0  # Master Clock
+
             for scene in script.get_all_scenes():
-                segment = await self._generate_scene_audio(scene, voice_id)
-                segments.append(segment)
+                # Check if webtoon-style scene with audio chunks
+                if hasattr(scene, "is_webtoon_style") and scene.is_webtoon_style():
+                    # NEW: Generate fragmented audio chunks
+                    logger.info(
+                        f"Scene {scene.scene_id} is webtoon-style with {len(scene.audio_chunks)} chunks"
+                    )
+                    chunk_segments, current_offset = await self._generate_scene_audio_chunks(
+                        scene=scene,
+                        current_offset=current_offset,
+                    )
+                    segments.extend(chunk_segments)
+                else:
+                    # LEGACY: Generate single narration audio
+                    logger.info(f"Scene {scene.scene_id} is legacy narration-style")
+                    segment = await self._generate_scene_audio(scene, voice_id)
+                    segment.global_offset = current_offset  # Set Master Clock offset
+                    segments.append(segment)
+                    current_offset += segment.duration_seconds
 
             # Concatenate all segments into master audio
             master_audio_path = await self._create_master_audio(segments, script.script_id)
 
-            # Calculate total duration
-            total_duration = sum(seg.duration_seconds for seg in segments)
+            # Calculate total duration from Master Clock
+            total_duration = current_offset
 
             # Create audio project
             audio_project = AudioProject(
@@ -100,7 +117,7 @@ class AudioGenerator:
             self._save_audio_project(audio_project)
 
             logger.info(
-                f"Audio project complete: {len(segments)} segments, {total_duration:.1f}s total"
+                f"Audio project complete: {len(segments)} segments, {total_duration:.1f}s total (Master Clock)"
             )
 
             return audio_project
@@ -152,11 +169,163 @@ class AudioGenerator:
             timestamps=timestamps,
         )
 
+        logger.info(f"Scene audio complete: {duration:.1f}s, {len(timestamps)} words")
+
+        return segment
+
+    async def _generate_chunk_audio(
+        self,
+        audio_chunk: any,  # AudioChunk from models.audio
+        scene_id: str,
+        global_offset: float,
+    ) -> AudioSegment:
+        """Generate audio for a single audio chunk (webtoon-style).
+
+        Args:
+            audio_chunk: AudioChunk object
+            scene_id: Parent scene identifier
+            global_offset: Start time in master timeline
+
+        Returns:
+            AudioSegment with chunk-level audio and timestamps
+        """
+        from gossiptoon.models.audio import AudioChunkType
+
         logger.info(
-            f"Scene audio complete: {duration:.1f}s, {len(timestamps)} words"
+            f"Generating audio for chunk: {audio_chunk.chunk_id} "
+            f"(speaker: {audio_chunk.speaker_id}, type: {audio_chunk.chunk_type})"
+        )
+
+        # Select voice based on speaker
+        voice_id = self._select_voice_for_speaker(
+            speaker_id=audio_chunk.speaker_id,
+            speaker_gender=audio_chunk.speaker_gender,
+            chunk_type=audio_chunk.chunk_type,
+        )
+
+        # Generate speech with director's notes as style instruction
+        output_path = self.config.audio_dir / f"{audio_chunk.chunk_id}.wav"
+
+        # Check if TTS client supports flexible style instructions (Google TTS)
+        if (
+            hasattr(self.tts_client.generate_speech, "__code__")
+            and "style_instruction" in self.tts_client.generate_speech.__code__.co_varnames
+        ):
+            # Google TTS with custom style
+            audio_path = await self.tts_client.generate_speech(
+                text=audio_chunk.text,
+                voice_id=voice_id,
+                style_instruction=audio_chunk.director_notes,
+                output_path=output_path,
+            )
+        else:
+            # ElevenLabs or legacy TTS (use emotion only)
+            audio_path = await self.tts_client.generate_speech(
+                text=audio_chunk.text,
+                voice_id=voice_id,
+                emotion=None,  # Director's notes not supported
+                output_path=output_path,
+            )
+
+        # Get actual audio duration
+        duration = self.processor.get_audio_duration(audio_path)
+
+        # Extract word-level timestamps
+        logger.info(f"Extracting timestamps for chunk: {audio_chunk.chunk_id}")
+        timestamps = await self.whisper.extract_timestamps(audio_path)
+
+        # Create audio segment with Master Clock offset
+        segment = AudioSegment(
+            scene_id=scene_id,
+            chunk_id=audio_chunk.chunk_id,
+            file_path=audio_path,
+            duration_seconds=duration,
+            emotion=EmotionTone.NEUTRAL,  # Chunk-level doesn't use scene emotion
+            voice_id=voice_id,
+            timestamps=timestamps,
+            global_offset=global_offset,  # Master Clock position
+        )
+
+        logger.info(
+            f"Chunk audio complete: {duration:.1f}s, {len(timestamps)} words, offset: {global_offset:.1f}s"
         )
 
         return segment
+
+    def _select_voice_for_speaker(
+        self,
+        speaker_id: str,
+        speaker_gender: str | None,
+        chunk_type: any,  # AudioChunkType
+    ) -> str:
+        """Select appropriate voice for speaker.
+
+        Args:
+            speaker_id: Speaker identifier
+            speaker_gender: Speaker gender ('male' or 'female')
+            chunk_type: Type of audio chunk
+
+        Returns:
+            Voice ID for TTS
+        """
+        from gossiptoon.models.audio import AudioChunkType
+
+        # Narrator uses default voice
+        if speaker_id == "Narrator" or chunk_type == AudioChunkType.NARRATION:
+            return self.config.audio.default_voice_id
+
+        # For dialogue, use gender-based voice selection (Google TTS)
+        if hasattr(self.tts_client, "get_recommended_voice_for_gender"):
+            # Use character name hash for consistent voice per character
+            character_index = hash(speaker_id) % 5
+            voice_id = self.tts_client.get_recommended_voice_for_gender(
+                gender=speaker_gender or "female",
+                index=character_index,
+            )
+            logger.info(
+                f"Selected voice '{voice_id}' for {speaker_id} ({speaker_gender}, index={character_index})"
+            )
+            return voice_id
+
+        # Fallback to default voice
+        return self.config.audio.default_voice_id
+
+    async def _generate_scene_audio_chunks(
+        self,
+        scene: any,  # Scene from script
+        current_offset: float,
+    ) -> tuple[list[AudioSegment], float]:
+        """Generate audio for all chunks in a webtoon-style scene.
+
+        Args:
+            scene: Scene object with audio_chunks
+            current_offset: Current position in master timeline
+
+        Returns:
+            Tuple of (list of AudioSegments, updated offset)
+        """
+        logger.info(
+            f"Generating {len(scene.audio_chunks)} audio chunks for scene: {scene.scene_id}"
+        )
+
+        segments = []
+        offset = current_offset
+
+        for audio_chunk in scene.audio_chunks:
+            segment = await self._generate_chunk_audio(
+                audio_chunk=audio_chunk,
+                scene_id=scene.scene_id,
+                global_offset=offset,
+            )
+            segments.append(segment)
+            offset += segment.duration_seconds
+
+        logger.info(
+            f"Scene chunks complete: {len(segments)} chunks, "
+            f"total duration: {offset - current_offset:.1f}s"
+        )
+
+        return segments, offset
 
     async def _create_master_audio(
         self,
