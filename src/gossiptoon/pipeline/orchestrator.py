@@ -198,9 +198,10 @@ class PipelineOrchestrator:
                     {"script": script.model_dump()},
                 )
 
-            # Stage 2.5: Engagement Hook Generation (NEW)
+            # Stage 2.5: Engagement Hook Generation (TEMPORARILY DISABLED for testing)
             engagement_project = None
-            if self._should_run_stage(start_stage, PipelineStage.ENGAGEMENT_GENERATED):
+            # TODO: Re-enable after Gemini API issue is resolved
+            if False and self._should_run_stage(start_stage, PipelineStage.ENGAGEMENT_GENERATED):
                 logger.info("="*60)
                 logger.info("Stage 2.5: Generating engagement hooks...")
                 logger.info("="*60)
@@ -216,6 +217,8 @@ class PipelineOrchestrator:
                     {"engagement_project": engagement_project.model_dump()},
                 )
                 logger.info(f"Engagement checkpoint saved")
+            else:
+                logger.info("Engagement stage SKIPPED (temporarily disabled for testing)")
 
             # Stage 3: Audio Generation
             if self._should_run_stage(start_stage, PipelineStage.AUDIO_GENERATED):
