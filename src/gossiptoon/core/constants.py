@@ -36,6 +36,7 @@ MAX_CHARACTERS_PER_VIDEO = 5
 
 # ... (Image config unchanged) ...
 
+
 class EmotionTone(str, Enum):
     """Emotion tones for TTS narration."""
 
@@ -54,6 +55,7 @@ class EmotionTone(str, Enum):
     RELIEVED = "relieved"
     EXASPERATED = "exasperated"  # NEW - fed up, exhausted patience
 
+
 class ActType(str, Enum):
     """Five-act structure for video scripts."""
 
@@ -62,7 +64,6 @@ class ActType(str, Enum):
     CRISIS = "crisis"  # 8-18s: Problem escalates
     CLIMAX = "climax"  # 18-30s: Peak tension
     RESOLUTION = "resolution"  # 30-40s: Outcome/twist
-
 
 
 class StoryCategory(str, Enum):
@@ -79,9 +80,6 @@ class StoryCategory(str, Enum):
     FAMILY = "family"
     WEDDING = "wedding"
     OTHER = "other"
-
-
-
 
 
 class CameraEffectType(str, Enum):
@@ -103,11 +101,11 @@ class CameraEffectType(str, Enum):
 
 # Act duration guidelines (in seconds) - Revised for 40s target
 ACT_DURATION_RANGES = {
-    ActType.HOOK: (0.5, 3.0),    # Ultra-short hook (Extreme Dramatic)
+    ActType.HOOK: (0.5, 3.0),  # Ultra-short hook (Extreme Dramatic)
     ActType.BUILD: (3.0, 10.0),  # Fast context
-    ActType.CRISIS: (5.0, 12.0), # Quick escalation
-    ActType.CLIMAX: (10.0, 15.0), # Main engagement
-    ActType.RESOLUTION: (5.0, 10.0), # Quick wrap-up
+    ActType.CRISIS: (5.0, 12.0),  # Quick escalation
+    ActType.CLIMAX: (10.0, 15.0),  # Main engagement
+    ActType.RESOLUTION: (5.0, 10.0),  # Quick wrap-up
 }
 
 # ElevenLabs voice settings
@@ -123,3 +121,62 @@ EMOTION_VOICE_SETTINGS = {
     EmotionTone.SUSPENSEFUL: {"stability": 0.6, "similarity_boost": 0.75, "style": 0.8},
     EmotionTone.SARCASTIC: {"stability": 0.4, "similarity_boost": 0.75, "style": 0.75},
 }
+
+# Google TTS style directives (for Gemini 2.5 Flash TTS)
+# Using the "Director" method for expressive narration
+GOOGLE_TTS_STYLE_DIRECTIVES = {
+    EmotionTone.EXCITED: "infectious, cheerful vocal smile with rising energy and enthusiasm",
+    EmotionTone.SHOCKED: "sudden gasp with wide-eyed surprise, sharp intake of breath, and disbelief",
+    EmotionTone.SYMPATHETIC: "warm, gentle tone with soft empathy and understanding",
+    EmotionTone.DRAMATIC: "theatrical, sweeping delivery with dramatic pauses and intensity",
+    EmotionTone.ANGRY: "sharp, forceful tone with rising volume and controlled fury",
+    EmotionTone.HAPPY: "bright, uplifting tone with a natural smile in the voice",
+    EmotionTone.SAD: "slow, melancholic delivery with a heavy, sorrowful tone",
+    EmotionTone.NEUTRAL: "clear, balanced delivery with professional composure",
+    EmotionTone.SUSPENSEFUL: "hushed, tense whisper with building anticipation and mystery",
+    EmotionTone.SARCASTIC: "dry, ironic tone with subtle eye-roll energy and wit",
+    EmotionTone.FRUSTRATED: "exasperated tone with barely contained irritation",
+    EmotionTone.DETERMINED: "firm, resolute delivery with unwavering confidence",
+    EmotionTone.RELIEVED: "exhaling tension with a warm, grateful release",
+    EmotionTone.EXASPERATED: "fed-up, exhausted patience with a deep sigh",
+}
+
+# Google TTS voice metadata - All 30 prebuilt voices with gender and characteristics
+GOOGLE_TTS_VOICE_METADATA = {
+    # Female Voices
+    "Achernar": {"gender": "female", "style": "soft"},
+    "Aoede": {"gender": "female", "style": "breezy"},
+    "Autonoe": {"gender": "female", "style": "bright"},
+    "Callirrhoe": {"gender": "female", "style": "easy-going"},
+    "Despina": {"gender": "female", "style": "smooth"},
+    "Erinome": {"gender": "female", "style": "clear"},
+    "Gacrux": {"gender": "female", "style": "mature"},
+    "Kore": {"gender": "female", "style": "firm"},
+    "Laomedeia": {"gender": "female", "style": "upbeat"},
+    "Leda": {"gender": "female", "style": "youthful"},
+    "Pulcherrima": {"gender": "female", "style": "forward"},
+    "Sulafat": {"gender": "female", "style": "warm"},
+    "Vindemiatrix": {"gender": "female", "style": "gentle"},
+    "Zephyr": {"gender": "female", "style": "bright"},
+    # Male Voices
+    "Achird": {"gender": "male", "style": "friendly"},
+    "Algenib": {"gender": "male", "style": "gravelly"},
+    "Algieba": {"gender": "male", "style": "smooth"},
+    "Alnilam": {"gender": "male", "style": "firm"},
+    "Charon": {"gender": "male", "style": "informative"},
+    "Enceladus": {"gender": "male", "style": "breathy"},
+    "Fenrir": {"gender": "male", "style": "excitable"},
+    "Iapetus": {"gender": "male", "style": "clear"},
+    "Orus": {"gender": "male", "style": "firm"},
+    "Puck": {"gender": "male", "style": "upbeat"},
+    "Rasalgethi": {"gender": "male", "style": "informative"},
+    "Sadachbia": {"gender": "male", "style": "lively"},
+    "Sadaltager": {"gender": "male", "style": "knowledgeable"},
+    "Schedar": {"gender": "male", "style": "even"},
+    "Umbriel": {"gender": "male", "style": "easy-going"},
+    "Zubenelgenubi": {"gender": "male", "style": "casual"},
+}
+
+# Recommended voices by gender for character assignment
+GOOGLE_TTS_RECOMMENDED_FEMALE_VOICES = ["Aoede", "Kore", "Laomedeia", "Sulafat", "Despina"]
+GOOGLE_TTS_RECOMMENDED_MALE_VOICES = ["Puck", "Charon", "Fenrir", "Orus", "Umbriel"]
