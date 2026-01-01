@@ -136,19 +136,19 @@ Output the complete script as valid JSON following the Schema exactly."""
         """
         self.config = config
         
-        # Configure Google Generative AI directly
-        import google.generativeai as genai
-        genai.configure(api_key=config.api.google_api_key)
-        
-        # Use the native Gemini model
-        self.genai_model = genai.GenerativeModel(
-            model_name="models/gemini-2.5-flash",
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.8,
-                response_mime_type="application/json",  # Keep JSON output
-            ),
+        # Use LangChain's ChatGoogleGenerativeAI with structured output
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            temperature=0.8,
+            google_api_key=config.api.google_api_key,
         )
-        self.parser = PydanticOutputParser(pydantic_object=Script)
+        
+        # Apply structured output to enforce Pydantic schema at generation time
+        self.structured_llm = self.llm.with_structured_output(
+            Script,
+            method="json_mode",  # Use JSON mode for schema enforcement
+        )
+        
         self.prompt = self._create_prompt()
 
     def _create_prompt(self) -> ChatPromptTemplate:
