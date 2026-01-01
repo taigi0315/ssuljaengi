@@ -50,3 +50,9 @@ This document records the narrative of changes for the Ssuljaengi project.
     - **ScriptWriter**: Updated system prompt with SFX library (DOOM, BAM!, WHAM!, SQUEEZE, etc.) - instructs LLM to suggest SFX for dramatic moments.
     - **Director**: Modified to inject SFX instructions into image generation prompts when `visual_sfx` is present.
     - **Note**: Actual text rendering depends on image model capabilities; prompts now include clear SFX instructions.
+  - **Feature**: Audio SFX Library Setup (TICKET-012 - Phase 1/3).
+    - **Infrastructure**: Created `assets/sfx/` directory structure (tension/action/impact categories).
+    - **Mapper**: Implemented `SFXMapper` class to map 12 SFX keywords to audio file paths.
+    - **Library**: DOOM, DUN-DUN, LOOM, RUMBLE, SQUEEZE, GRAB, GRIP, CLENCH, CRUSH, BAM!, WHAM!, THUD, TA-DA!.
+    - **Licensing**: Created CREDITS.md for CC0/CC-BY attribution.
+    - **Status**: Infrastructure ready - audio files need to be downloaded/generated.
