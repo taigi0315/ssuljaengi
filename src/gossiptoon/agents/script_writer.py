@@ -141,7 +141,6 @@ Output the complete script as valid JSON following the Schema exactly."""
             model="gemini-2.5-flash",
             temperature=0.8,
             google_api_key=config.api.google_api_key,
-            transport="rest",  # Use REST API to avoid Vertex AI auth
         )
         self.parser = PydanticOutputParser(pydantic_object=Script)
         self.prompt = self._create_prompt()

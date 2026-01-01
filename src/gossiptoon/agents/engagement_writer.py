@@ -65,7 +65,6 @@ to maximize viewer engagement (comments, shares, retention).
             model="gemini-2.5-flash",
             temperature=0.8,  # Higher for creative hooks
             google_api_key=api_key,
-            transport="rest",  # Use REST API to avoid Vertex AI auth
         )
         self.parser = PydanticOutputParser(pydantic_object=EngagementProject)
 
@@ -96,7 +95,7 @@ to maximize viewer engagement (comments, shares, retention).
         logger.info("ENGAGEMENT WRITER: Prompt template created")
 
         # Create chain
-        logger.info("ENGAGEMENT WRITER: Creating LangChain chain (Gemini 2.0 Flash)...")
+        logger.info("ENGAGEMENT WRITER: Creating LangChain chain (Gemini 2.5 Flash)...")
         chain = prompt | self.llm | self.parser
         logger.info("ENGAGEMENT WRITER: Chain created, preparing to call Gemini API...")
 
