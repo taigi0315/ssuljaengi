@@ -9,7 +9,7 @@ from typing import Optional
 
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from gossiptoon.models.engagement import EngagementProject
 from gossiptoon.models.script import Script
@@ -59,12 +59,12 @@ to maximize viewer engagement (comments, shares, retention).
         """Initialize EngagementWriter agent.
 
         Args:
-            api_key: OpenAI API key (optional, uses env var if not provided)
+            api_key: Google API key (optional, uses env var if not provided)
         """
-        self.llm = ChatOpenAI(
-            model="gpt-4o",  # Use gpt-4o instead of gpt-4
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash-exp",
             temperature=0.8,  # Higher for creative hooks
-            api_key=api_key,
+            google_api_key=api_key,
         )
         self.parser = PydanticOutputParser(pydantic_object=EngagementProject)
 
