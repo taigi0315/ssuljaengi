@@ -185,6 +185,7 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
 
 **DO NOT:**
 - Change structure (scene_id, order, durations)
+- **CRITICAL**: Remove `target_duration_seconds` from Acts (Must be preserved)
 - Modify character_profiles
 - Add/remove scenes or acts
 - Rewrite creative content
