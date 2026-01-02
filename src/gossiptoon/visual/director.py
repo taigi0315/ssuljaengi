@@ -247,6 +247,32 @@ CHARACTER CONSISTENCY REQUIREMENTS:
         if hasattr(scene, 'visual_sfx') and scene.visual_sfx:
             enhanced_prompt += f"\n\nINCLUDE: Bold comic-style text sound effect '{scene.visual_sfx}' integrated dramatically into the scene background."
 
+        # Add bubble metadata for speech bubble rendering
+        if hasattr(scene, 'bubble_metadata') and scene.bubble_metadata:
+            bubble_instructions = ["\n\nSPEECH BUBBLES TO RENDER:"]
+            
+            # Map bubble styles to visual descriptions
+            bubble_style_map = {
+                "speech": "normal white speech bubble with black outline",
+                "thought": "cloud-shaped thought bubble with small circles leading to character",
+                "shout": "jagged explosion-style bubble with bold outline",
+                "whisper": "dotted-line whisper bubble with wavy edges"
+            }
+            
+            for bubble in scene.bubble_metadata:
+                style_desc = bubble_style_map.get(bubble.style, "speech bubble")
+                position_desc = bubble.position.upper().replace("-", " ")
+                
+                bubble_instructions.append(
+                    f"  • Position: {position_desc} - "
+                    f"{bubble.character_name} says \"{bubble.text}\" "
+                    f"in a {style_desc}. "
+                    f"Text must be clearly readable and properly formatted inside the bubble."
+                )
+            
+            enhanced_prompt += "\n" + "\n".join(bubble_instructions)
+            enhanced_prompt += "\n\nIMPORTANT: Render ALL speech bubbles with EXACT text shown. Text must be legible and properly spelled."
+
         prompt = ImagePrompt(
             scene_id=scene.scene_id,
             base_prompt=enhanced_prompt,
