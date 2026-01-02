@@ -348,7 +348,7 @@ Apply QA fixes and return the polished act.
             })
 
             start_time = datetime.now()
-            validated_act = await self.structured_llm.with_structured_output(Act).ainvoke(formatted_prompt)
+            validated_act = await self.llm.with_structured_output(Act).ainvoke(formatted_prompt)
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
 
             self.debugger.log_interaction(
