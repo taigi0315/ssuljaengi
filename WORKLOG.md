@@ -2,6 +2,94 @@
 
 This document records the narrative of changes for the Ssuljaengi project.
 
+## [2026-01-02] TICKET-025: Fix Missing SFX Implementation
+
+### Problem
+
+**Severity**: HIGH (P1) - Feature Gap  
+**Issue**: Sound effects (SFX) missing from final video output despite existing infrastructure
+
+### Investigation Phase
+
+**Discovered**:
+
+- ✅ SFX infrastructure fully implemented:
+  - `src/gossiptoon/audio/sfx_mapper.py` - Maps SFX keywords to audio files
+  - `src/gossiptoon/audio/sfx_mixer.py` - Audio mixing logic
+  - `src/gossiptoon/pipeline/orchestrator.py` - `_overlay_audio_sfx()` method
+- ✅ SFX assets exist: `assets/sfx/` with 13 sound effects in 3 categories:
+  - **TENSION**: DOOM, DUN-DUN, LOOM, RUMBLE
+  - **ACTION**: SQUEEZE, GRAB, GRIP, CLENCH, CRUSH
+  - **IMPACT**: BAM!, WHAM!, THUD, TA-DA!
+
+**Root Cause Identified**:
+
+- ❌ ScriptWriter prompt does NOT include `visual_sfx` field instructions
+- ❌ Generated scripts have 0 scenes with SFX (tested on project_20260101_221937)
+- Result: Orchestrator's `_overlay_audio_sfx()` has nothing to process
+
+### Implementation
+
+**Files Modified**:
+
+1. **`src/gossiptoon/agents/script_writer.py`**
+
+   - Added #4 `visual_sfx` field documentation in system prompt
+   - Listed all 13 SFX keywords with categories and descriptions
+   - Added usage guidelines:
+     - Use sparingly (1-2 per video max)
+     - Only for HIGH-IMPACT scenes (climax, revelation, confrontation)
+     - Choose appropriate category for scene emotion
+   - Updated example scene to include `"visual_sfx": "DUN-DUN"`
+
+2. **`src/gossiptoon/agents/script_evaluator.py`**
+   - Added #8 SFX validation rules
+   - Validate SFX keywords against allowed library
+   - Enforce sparing usage (max 2 per video)
+   - Remove overused SFX during evaluation
+
+### Technical Details
+
+**SFX Library Structure**:
+
+```
+assets/sfx/
+├── tension/     # Atmospheric, ominous (DOOM, DUN-DUN, LOOM, RUMBLE)
+├── action/      # Physical intensity (SQUEEZE, GRAB, GRIP, CLENCH, CRUSH)
+└── impact/      # Sudden events (BAM!, WHAM!, THUD, TA-DA!)
+```
+
+**Integration Flow**:
+
+1. ScriptWriter generates scene with `visual_sfx: "BAM!"`
+2. ScriptEvaluator validates SFX keyword
+3. Orchestrator's `_overlay_audio_sfx()` detects visual_sfx
+4. SFXMapper resolves keyword to file path
+5. SFXMixer overlays SFX at scene start time
+6. Final video includes dramatic sound effect
+
+### Testing Plan
+
+**Next Steps** (Phase C):
+
+- [ ] Generate new story and verify SFX in script
+- [ ] Listen to final video for SFX presence
+- [ ] Test all 3 SFX categories
+- [ ] Verify timing synchronization
+- [ ] Check audio quality (no clipping, proper volume balance)
+
+### Commit
+
+```
+db2d217 - feat: Enable SFX generation in ScriptWriter and ScriptEvaluator
+```
+
+### Branch
+
+`fix/sfx-missing-implementation`
+
+---
+
 ## [2026-01-01] CRITICAL FIX: Video/Audio Synchronization Bug
 
 ### Problem Discovered

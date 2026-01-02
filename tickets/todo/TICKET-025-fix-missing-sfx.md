@@ -19,6 +19,7 @@ Investigate and fix the SFX application in the audio generation pipeline to ensu
 ### Investigation Phase
 
 1. **Verify SFX Code Existence**
+
    - Check if SFX layering module exists in codebase
    - Review audio pipeline architecture
    - Identify where SFX should be applied
@@ -31,6 +32,7 @@ Investigate and fix the SFX application in the audio generation pipeline to ensu
 ### Implementation Phase
 
 1. **If Code Exists:**
+
    - Debug and fix rendering issues
    - Verify SFX file paths and assets
    - Test SFX timing and synchronization
@@ -43,11 +45,13 @@ Investigate and fix the SFX application in the audio generation pipeline to ensu
 ### Technical Requirements
 
 1. **SFX Library Management**
+
    - Define SFX asset directory structure
    - Support multiple SFX categories
    - Add SFX selection logic based on scene type
 
 2. **Audio Mixing**
+
    - Layer SFX over narration and BGM
    - Proper volume balancing
    - Timing synchronization with visual events
@@ -61,17 +65,25 @@ Investigate and fix the SFX application in the audio generation pipeline to ensu
 
 ### Phase A: Investigation
 
-- [ ] Search codebase for existing SFX implementation
-- [ ] Review audio generation modules
-- [ ] Trace audio pipeline from script to final output
-- [ ] Document current architecture
+- [x] Search codebase for existing SFX implementation
+- [x] Review audio generation modules
+- [x] Trace audio pipeline from script to final output
+- [x] Document current architecture
+
+**Findings**:
+
+- ✅ SFX infrastructure exists: `sfx_mapper.py`, `sfx_mixer.py`, `orchestrator._overlay_audio_sfx()`
+- ✅ SFX assets exist: `assets/sfx/` (13 sound effects in 3 categories)
+- ❌ **Root Cause**: ScriptWriter not generating `visual_sfx` field in scenes
 
 ### Phase B: Fix/Implementation
 
-- [ ] Create or fix SFX layering module
-- [ ] Add SFX asset management
-- [ ] Implement audio mixing logic
-- [ ] Add timing synchronization
+- [x] Create or fix SFX layering module (already exists, no changes needed)
+- [x] Add SFX asset management (already exists)
+- [x] Implement audio mixing logic (already exists)
+- [x] Add timing synchronization (already exists via orchestrator)
+- [x] **FIX**: Update ScriptWriter prompt to generate visual_sfx
+- [x] **FIX**: Update ScriptEvaluator prompt to validate visual_sfx
 
 ### Phase C: Testing
 
