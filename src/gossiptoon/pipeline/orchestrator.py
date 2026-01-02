@@ -420,8 +420,14 @@ class PipelineOrchestrator:
 
             # Step 2: Fill scaffold with creative content
             logger.info("Step 2/3: Filling scaffold with creative content...")
-            filled_script = await self.script_writer.fill_scaffold(story, scaffold)
-            logger.info(f"Creative content filled: {len(filled_script.acts)} acts")
+            try:
+                filled_script = await self.script_writer.fill_scaffold(story, scaffold)
+                if filled_script is None:
+                    raise GossipToonException("fill_scaffold returned None!")
+                logger.info(f"Creative content filled: {len(filled_script.acts)} acts")
+            except Exception as fill_error:
+                logger.error(f"FILL_SCAFFOLD FAILED: {fill_error}", exc_info=True)
+                raise
 
             # Step 3: QA validation and polish
             logger.info("Step 3/3: QA validation and polish...")
