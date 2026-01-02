@@ -76,11 +76,14 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
    - Validate characters_present matches audio_chunks speakers
 
 7. **Text Normalization for TTS Compatibility:**
+   - Remove stage directions and parentheticals from dialogue text
+   - Examples: "(Text message tone)", "(Whispering)", "(Cries)", etc.
+   - These should only appear in director_notes, NOT in the spoken text
    - Normalize all numbers and abbreviations for text-to-speech
    - Convert: $28M → $28 million, $1M → $1 million
    - Convert: 5K → 5 thousand, 2B → 2 billion
    - Spell out abbreviations that TTS can't handle
-   - Ensure all text in audio_chunks is TTS-friendly
+   - Ensure all text in audio_chunks is clean and TTS-friendly
 
 **Input:**
 * Original Reddit Story (for context)

@@ -519,6 +519,7 @@ class GoogleTTSClient(TTSClient):
         Google TTS API sometimes returns empty content for:
         - Abbreviated numbers like $28M, $1M
         - Complex special characters
+        - Stage directions in parentheses
         
         Args:
             text: Original text
@@ -527,6 +528,10 @@ class GoogleTTSClient(TTSClient):
             Preprocessed text safe for TTS
         """
         import re
+        
+        # Remove parentheticals (stage directions)
+        # Examples: (Text message tone), (Whispering), (Cries)
+        text = re.sub(r'\([^)]+\)\s*', '', text)
         
         # Replace abbreviated millions/billions
         # $28M → $28 million
@@ -541,5 +546,8 @@ class GoogleTTSClient(TTSClient):
         text = re.sub(r'\b(\d+)M\b', r'\1 million', text)
         text = re.sub(r'\b(\d+)B\b', r'\1 billion', text)
         text = re.sub(r'\b(\d+)K\b', r'\1 thousand', text)
+        
+        # Clean up extra whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
         
         return text
