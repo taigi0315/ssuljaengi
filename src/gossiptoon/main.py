@@ -22,6 +22,7 @@ from rich.table import Table
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.pipeline.checkpoint import PipelineStage
 from gossiptoon.pipeline.orchestrator import PipelineOrchestrator
+from gossiptoon.youtube.comments import CommentManager
 
 import logging
 from rich.logging import RichHandler
@@ -204,6 +205,29 @@ def clean(config: Optional[str], days: int):
         gossiptoon clean --days 7
     """
     _clean_checkpoints(config_path=config, max_age_days=days)
+
+
+@cli.command()
+@click.argument("url")
+@click.option(
+    "--template",
+    "-t",
+    default="engagement_default",
+    help="Comment template to use (engagement_default, engagement_controversial, engagement_update)"
+)
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(exists=True),
+    help="Path to config file",
+)
+def comment(url: str, template: str, config: Optional[str]):
+    """Generate YouTube comment text.
+
+    Example:
+        gossiptoon comment "https://short.url/story" --template engagement_controversial
+    """
+    _generate_comment(url, template, config_path=config)
 
 
 async def _run_pipeline(story_url: str, config_path: Optional[str] = None):
@@ -410,6 +434,28 @@ def _clean_checkpoints(config_path: Optional[str] = None, max_age_days: int = 7)
 
         return 0
 
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        return 1
+
+
+def _generate_comment(url: str, template: str, config_path: Optional[str] = None):
+    """Generate comment text helper."""
+    try:
+        # Load config
+        config = _load_config(config_path)
+        
+        # Initialize manager
+        manager = CommentManager(config)
+        
+        # Generate
+        comment_text = manager.generate_comment(source_url=url, template_name=template)
+        
+        # Display
+        console.print("\n[bold cyan]Generated Comment:[/bold cyan]\n")
+        console.print(Panel(comment_text, title=f"Template: {template}", border_style="green"))
+        console.print("\n[dim]Copy the text above and pin it to your YouTube video.[/dim]\n")
+        
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
         return 1
