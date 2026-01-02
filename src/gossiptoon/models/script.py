@@ -233,7 +233,7 @@ class Act(BaseModel):
     """Represents one act in the five-act structure."""
 
     act_type: ActType = Field(..., description="Type of act")
-    scenes: list[Scene] = Field(min_length=1, max_length=10, description="Scenes in this act (extended for longer storytelling)")
+    scenes: list[Scene] = Field(min_length=1, max_length=20, description="Scenes in this act (extended for longer storytelling)")
     target_duration_seconds: float = Field(ge=1.0, le=60.0, description="Target act duration (extended for 2-minute videos)")
 
     @field_validator("scenes")
