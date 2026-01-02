@@ -81,6 +81,17 @@ Each scene must have:
      - Dark secret revealed: "DOOM"
    - **IMPORTANT**: Only 1-2 SFX per video (overuse kills impact)
 
+5. **camera_effect** (OPTIONAL): Visual movement
+   - Use to enhance scene emotion
+   - Options:
+     * static: No movement (dialogue, calm moments)
+     * zoom_in: Slow push in (focus, revelation)
+     * zoom_out: Slow pull out (context, isolation)
+     * pan_left / pan_right: Exploration
+     * shake: Standard drama shake
+     * shake_slow: Subtle tension (unease)
+     * shake_fast: Intense shock (impact) - MAX 1.5s
+
 **Director's Notes Examples:**
 - Narration: "a mysterious narrator setting the scene in a noir film, deep and ominous"
 - Dialogue: "a betrayed friend confronting someone, voice cracking with emotion"
@@ -158,6 +169,7 @@ Each scene must have:
     }
   ],
   "visual_sfx": "DUN-DUN",
+  "camera_effect": "shake_slow",
   "emotion": "dramatic",
   "visual_description": "Extreme Close-up (ECU) on Mother's eyes wide with betrayal, tears streaming. High contrast lighting. John is just a dark silhouette in background.",
   "panel_layout": "Split panel effect: Main focus on Mother's shattered expression (80%), John's guilty posture in shadow (20%)",

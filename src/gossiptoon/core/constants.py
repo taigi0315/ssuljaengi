@@ -97,17 +97,19 @@ class CameraEffectType(str, Enum):
     PAN_UP = "pan_up"
     PAN_DOWN = "pan_down"
     SHAKE = "shake"
+    SHAKE_SLOW = "shake_slow"  # NEW - subtle tension
+    SHAKE_FAST = "shake_fast"  # NEW - intense shock
     STATIC = "static"
-    LOOM = "loom"  # NEW - dramatic forward movement
+    LOOM = "loom"
 
 
-# Act duration guidelines (in seconds) - Revised for 40s target
+# Act duration guidelines (in seconds) - Revised for Shorts/TikTok 30-45s target (TICKET-026)
 ACT_DURATION_RANGES = {
-    ActType.HOOK: (0.5, 3.0),    # Ultra-short hook (Extreme Dramatic)
-    ActType.BUILD: (3.0, 10.0),  # Fast context
-    ActType.CRISIS: (5.0, 12.0), # Quick escalation
-    ActType.CLIMAX: (10.0, 15.0), # Main engagement
-    ActType.RESOLUTION: (5.0, 10.0), # Quick wrap-up
+    ActType.HOOK: (0.5, 2.0),    # Ultra-short hook (Instant Grab)
+    ActType.BUILD: (2.0, 4.0),   # Fast Setup
+    ActType.CRISIS: (3.0, 4.0),  # Quick escalation
+    ActType.CLIMAX: (3.0, 4.0),  # Peak impact
+    ActType.RESOLUTION: (2.0, 3.0), # Quick wrap-up
 }
 
 # ElevenLabs voice settings
