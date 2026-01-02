@@ -44,7 +44,7 @@ class SceneStructurerAgent:
      * outfit: Detailed clothing description
 
 2. **5-Act Structure** (EXACT ORDER):
-   - Act 1: HOOK (target: 0.5-2s)
+   - Act 1: HOOK (target: 0.5-2s) - HIGH INTENSITY (shock/drama)
    - Act 2: BUILD (target: 2-4s)
    - Act 3: CRISIS (target: 3-4s)
    - Act 4: CLIMAX (target: 3-4s)

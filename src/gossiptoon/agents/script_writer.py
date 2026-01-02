@@ -51,11 +51,11 @@ For each character, include:
 - Outfit (e.g., "Worn-out gray hoodie")
 
 **Structure (Five Acts):**
-1. **The Hook** (0-3s): Immediate dialogue hook or dramatic statement
-2. **Setup** (3-10s): Character introduction through dialogue
-3. **Escalation** (10-20s): Tension builds through conversation/confrontation
-4. **Climax** (20-35s): Peak emotional dialogue exchange
-5. **Resolution** (35-45s): Outcome revealed through dialogue or reflection
+1. **The Hook** (0-3s): IMMERSIVE FLASH-FORWARD. Start with the *most dramatic/shocking* moment of the story (dialogue or action). Do NOT start chronologically.
+2. **Setup** (3-10s): Jump back in time. Introduce characters and context leading up to the hook.
+3. **Escalation** (10-20s): Tension builds through conversation/confrontation.
+4. **Climax** (20-35s): Peak emotional dialogue exchange (The return to the Hook moment).
+5. **Resolution** (35-45s): Outcome revealed + ENGAGEMENT QUESTION ending.
 
 **Scene Structure (WEBTOON STYLE):**
 Each scene must have:
@@ -177,6 +177,13 @@ Each scene must have:
 }
 ```
 
+**Engagement Ending:**
+The video MUST end with a question or controversial statement to provoke comments.
+- "Was I wrong?"
+- "What would you have done?"
+- "Team Mom or Team Dad?"
+**CRITICAL**: Never end with a generic conclusion. Force the viewer to engage.
+
 **IMPORTANT:**
 - Use NARRATION to lead the story (60-70%)
 - Add DIALOGUE for key emotional moments (30-40%)
@@ -184,6 +191,7 @@ Each scene must have:
 - Use director_notes to add emotional depth
 - Assign bubble positions to avoid overlap
 - Maintain webtoon aesthetic (vibrant, expressive, dramatic)
+- **TONE**: Polarizing. Highlight conflict. Create "Us vs Them" dynamics.
 """
 
     USER_PROMPT_TEMPLATE = """Convert this Reddit story into a Webtoon-style YouTube Short:
@@ -434,7 +442,13 @@ Generate scenes with:
 4. DO NOT add/remove scenes
 5. ONLY fill creative content fields
 
+**NARRATIVE RESTRUCTURING (Hook-First):**
+- **Act 1 (Hook)**: MUST contain the MOST shocking/dramatic moment from the story. Use a "Flash Forward" technique. Do NOT start with "I was born..." or background info. Start with the scream, the slap, or the discovery.
+- **Act 2 (Setup)**: Rewind. "Two days earlier..." or "It started when...". Build context.
+- **Act 5 (Resolution/Ending)**: MUST end with an ENGAGEMENT TRIGGER. Ask the audience a question. "Am I the jerk?", "Who was right?". Open-ended and controversial.
+
 **Style Guidelines:**
+- **Tone**: Polarizing & Dramatic. Emphasize conflict. Make the viewer choose a side.
 - Use NARRATION to lead (60-70%)
 - Add DIALOGUE for emotional moments (30-40%)
 - Main character narrates in first-person (Reddit style)
