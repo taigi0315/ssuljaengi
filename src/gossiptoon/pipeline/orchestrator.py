@@ -14,6 +14,7 @@ from gossiptoon.agents.scene_structurer import SceneStructurerAgent
 from gossiptoon.agents.script_evaluator import ScriptEvaluator
 from gossiptoon.agents.script_writer import ScriptWriterAgent
 from gossiptoon.agents.story_finder import StoryFinderAgent
+from gossiptoon.agents.visual_detailer import VisualDetailerAgent
 from gossiptoon.audio.generator import AudioGenerator
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.core.exceptions import GossipToonException
@@ -94,6 +95,7 @@ class PipelineOrchestrator:
         self.scene_structurer = SceneStructurerAgent(config)
         self.script_writer = ScriptWriterAgent(config)
         self.script_evaluator = ScriptEvaluator(config)
+        self.visual_detailer = VisualDetailerAgent(config)
 
         self.engagement_writer = EngagementWriter(api_key=config.api.google_api_key)
         self.audio_generator = AudioGenerator(config)
@@ -425,6 +427,10 @@ class PipelineOrchestrator:
             logger.info("Step 3/3: QA validation and polish...")
             final_script = await self.script_evaluator.validate_script(filled_script, story)
             logger.info(f"Script validated: {final_script.get_scene_count()} scenes")
+
+            # Step 4: Visual Enrichment (TICKET-038)
+            logger.info("Step 4: Enriching visual descriptions...")
+            final_script = await self.visual_detailer.enrich_script_visuals(final_script, story)
 
             # Post-validation (metadata, etc.)
             final_script = self.script_writer._validate_and_enhance_script(final_script, story)

@@ -101,6 +101,7 @@ class AudioGenerator:
                     chunk_segments, current_offset = await self._generate_scene_audio_chunks(
                         scene=scene,
                         current_offset=current_offset,
+                        gender_map={c.name: c.gender for c in script.character_profiles},
                     )
                     segments.extend(chunk_segments)
                 else:
@@ -191,6 +192,7 @@ class AudioGenerator:
         audio_chunk: any,  # AudioChunk from models.audio
         scene_id: str,
         global_offset: float,
+        gender_map: Optional[dict[str, str]] = None,
     ) -> AudioSegment:
         """Generate audio for a single audio chunk (webtoon-style).
 
@@ -198,9 +200,7 @@ class AudioGenerator:
             audio_chunk: AudioChunk object
             scene_id: Parent scene identifier
             global_offset: Start time in master timeline
-
-        Returns:
-            AudioSegment with chunk-level audio and timestamps
+            gender_map: Map of character names to genders
         """
         from gossiptoon.models.audio import AudioChunkType
 
@@ -214,6 +214,7 @@ class AudioGenerator:
             speaker_id=audio_chunk.speaker_id,
             speaker_gender=audio_chunk.speaker_gender,
             chunk_type=audio_chunk.chunk_type,
+            gender_map=gender_map,
         )
 
         # Generate speech with director's notes as style instruction
@@ -270,6 +271,7 @@ class AudioGenerator:
         speaker_id: str,
         speaker_gender: str | None,
         chunk_type: any,  # AudioChunkType
+        gender_map: Optional[dict[str, str]] = None,
     ) -> str:
         """Select appropriate voice for speaker.
 
@@ -297,8 +299,14 @@ class AudioGenerator:
         if hasattr(self.tts_client, "get_recommended_voice_for_gender"):
             # Use character name hash for consistent voice per character
             character_index = hash(speaker_id) % 5
+            # Fallback to gender map if speaker_gender is None
+            gender = speaker_gender
+            if not gender and gender_map and speaker_id in gender_map:
+                gender = gender_map[speaker_id]
+                logger.debug(f"Resolved gender for {speaker_id} from map: {gender}")
+
             voice_id = self.tts_client.get_recommended_voice_for_gender(
-                gender=speaker_gender or "female",
+                gender=gender or "female",
                 index=character_index,
             )
             logger.info(
@@ -313,6 +321,7 @@ class AudioGenerator:
         self,
         scene: any,  # Scene from script
         current_offset: float,
+        gender_map: Optional[dict[str, str]] = None,
     ) -> tuple[list[AudioSegment], float]:
         """Generate audio for all chunks in a webtoon-style scene.
 
@@ -335,6 +344,7 @@ class AudioGenerator:
                 audio_chunk=audio_chunk,
                 scene_id=scene.scene_id,
                 global_offset=offset,
+                gender_map=gender_map,
             )
             segments.append(segment)
             offset += segment.duration_seconds

@@ -416,6 +416,7 @@ Generate scenes with:
    - Create 1-3 audio chunks per scene
    - Types: "narration", "dialogue", or "internal"
    - Use character names from provided profiles
+   - Include "speaker_gender": "male" or "female"
    - MAX 100 characters per chunk
    - Add director_notes (MIN 10 chars) for TTS styling
    - For dialogue: add bubble_position and bubble_style
