@@ -57,11 +57,12 @@ Each scene must have:
    - bubble_position: "top-left", "top-right", "center", "bottom-left", "bottom-right"
    - bubble_style: "speech", "thought", "shout", "whisper"
 
-2. **panel_layout**: Webtoon panel description
-   - Describe visual composition
-   - Character positions and expressions
-   - Dramatic lighting/shadows
-   - Camera angle
+2. **panel_layout**: Webtoon panel description (INSTANT READABILITY)
+   - **CRITICAL**: We only have 3 seconds. Capture ONE specific key moment.
+   - ❌ "They fight and he runs away" (Too complex, takes time to process)
+   - ✅ "Close-up of his fist connecting with jaw, sweat flying" (Instant impact)
+   - Focus on FACIAL EXPRESSIONS and DRAMATIC ANGLES (High/Low angle).
+   - Use Close-ups (CU) or Extreme Close-ups (ECU) for maximum emotion on mobile screens.
 
 3. **bubble_metadata**: Chat bubble overlay info
    - Links to audio_chunk
@@ -140,7 +141,6 @@ Each scene must have:
       "bubble_style": "whisper"
     }
   ],
-  "panel_layout": "Korean webtoon panel: Close-up on Mother's shocked face, tears forming, dramatic lighting from window. John in background, head down.",
   "bubble_metadata": [
     {
       "chunk_id": "crisis_01_mother_01",
@@ -159,7 +159,8 @@ Each scene must have:
   ],
   "visual_sfx": "DUN-DUN",
   "emotion": "dramatic",
-  "visual_description": "Dramatic confrontation scene in dimly lit kitchen, Mother's face showing betrayal and hurt, John looking guilty and defensive",
+  "visual_description": "Extreme Close-up (ECU) on Mother's eyes wide with betrayal, tears streaming. High contrast lighting. John is just a dark silhouette in background.",
+  "panel_layout": "Split panel effect: Main focus on Mother's shattered expression (80%), John's guilty posture in shadow (20%)",
   "characters_present": ["Mother", "John"],
   "estimated_duration_seconds": 3.5
 }

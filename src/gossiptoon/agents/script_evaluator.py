@@ -53,7 +53,11 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
      * bubble_position: "top-left", "top-right", "center", "bottom-left", "bottom-right"
      * bubble_style: "speech", "thought", "shout", "whisper"
    - bubble_metadata must match dialogue chunks
-   - panel_layout must describe Korean webtoon visual composition
+   - panel_layout must capture ONE KEY MOMENT for instant 3s readability
+   - REJECT complex multi-action descriptions ("He walks in, sits down, and cries")
+   - ACCEPT snapshot moments ("Close-up of him wiping a tear")
+   - Focus on facial expressions and dramatic angles
+   - Keep descriptions under 30 words
 
 3. **Enum Correction**: Map descriptions to strict Enums:
    * **ALLOWED EMOTIONS**: {valid_emotions}
