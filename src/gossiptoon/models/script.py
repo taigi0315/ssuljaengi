@@ -14,6 +14,7 @@ from gossiptoon.core.constants import (
     EmotionTone,
 )
 from gossiptoon.models.audio import AudioChunk, BubbleMetadata
+from gossiptoon.models.panel import PanelTemplateType
 
 
 class CharacterProfile(BaseModel):
@@ -63,6 +64,14 @@ class Scene(BaseModel):
     bubble_metadata: list[BubbleMetadata] = Field(
         default_factory=list,
         description="Chat bubble positions and styles for dialogue",
+    )
+
+    # NEW: Structured Panel System (Ticket-029)
+    panel_template: Optional[PanelTemplateType] = Field(
+        None, description="Template ID for multi-panel layouts (e.g. 3-panel vertical)"
+    )
+    panel_descriptions: Optional[list[str]] = Field(
+        None, description="List of visual descriptions per panel (if template selected)"
     )
 
     # Existing fields
