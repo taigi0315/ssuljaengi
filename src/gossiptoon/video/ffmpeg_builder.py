@@ -282,8 +282,16 @@ class FFmpegBuilder:
             # Escape path for FFmpeg filter
             sub_path = str(options["subtitles_path"]).replace(":", "\\\\:").replace("'", "\\'")
             next_v = "[v_subs]" if engagement_overlay else "[outv]"
+            
+            # Add fontsdir if provided
+            fonts_dir_opt = ""
+            if options.get("fonts_dir"):
+                # Escape fonts dir path
+                fdir = str(options["fonts_dir"]).replace(":", "\\\\:").replace("'", "\\'")
+                fonts_dir_opt = f":fontsdir='{fdir}'"
+
             # If engagement overlay exists, we output to intermediate, else final
-            subtitle_filter = f"{current_v}subtitles='{sub_path}'{next_v}"
+            subtitle_filter = f"{current_v}subtitles='{sub_path}'{fonts_dir_opt}{next_v}"
             filter_parts.append(subtitle_filter)
             current_v = next_v
 

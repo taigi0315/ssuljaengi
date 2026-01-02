@@ -177,7 +177,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
         return False
     
     def _generate_rapid_events(self, segment: AudioSegment, offset: float) -> list[str]:
-        """Generate rapid word-by-word events.
+        """Generate rapid word-by-word events with high-impact styling.
 
         Args:
             segment: Audio segment
@@ -187,19 +187,32 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
             List of event strings
         """
         events = []
+        from gossiptoon.video.text_analyzer import TextAnalyzer, TextStyle
 
         for ts in segment.timestamps:
             start_str = format_timestamp_ass(ts.start + offset)
             end_str = format_timestamp_ass(ts.end + offset)
 
-            # Pick a random pastel color
-            color_hex = random.choice(self.PASTEL_PALETTE)
-            # Convert RGB to BGR for ASS (&HBBGGRR)
-            r, g, b = color_hex[0:2], color_hex[2:4], color_hex[4:6]
-            ass_color = f"&H00{b}{g}{r}"
+            # Analyze word for style
+            style = TextAnalyzer.analyze_word(ts.word)
+            
+            # Base text with style tags
+            tags = TextAnalyzer.get_ass_tags(style)
+            
+            if style == TextStyle.HIGH_IMPACT:
+                # Add random high-impact color
+                color = TextAnalyzer.get_high_impact_color()
+                tags += f"\\c{color}"
+                # Add slight shake for high impact (optional)
+                # tags += r"\t(0,200,\fscx110\fscy110)" # Pulse example
+            else:
+                # Normal words in rapid mode: standard color (White) or Pastel?
+                # Ticket says "Normal Subtitles... White text with black outline"
+                # But rapid mode usually used pastel. Let's stick to White for readability now,
+                # as High Impact provides the "pop".
+                tags += r"\c&H00FFFFFF&"
 
-            # Apply color tag and Text
-            text = f"{{\\c{ass_color}}}{ts.word}"
+            text = f"{{{tags}}}{ts.word}"
 
             events.append(
                 f"Dialogue: 0,{start_str},{end_str},RapidWord,,0,0,0,,{text}"
