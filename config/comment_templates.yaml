@@ -1,0 +1,17 @@
+engagement_default:
+  template: |
+    🔗 Read the original story: {source_url}
+
+    What's your take? Was {protagonist} right? Let me know! 👇
+
+engagement_controversial:
+  template: |
+    This one divided the internet. Check the original: {source_url}
+
+    Which side are you on? Comment below! 💬
+
+engagement_update:
+  template: |
+    Want to know what happened next? Full story + updates: {source_url}
+
+    Drop your reaction! 👇
