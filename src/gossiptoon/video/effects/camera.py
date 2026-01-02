@@ -88,9 +88,15 @@ class CameraEffect(Effect):
                 pan_intensity=intensity
             ))
 
-        # SHAKE requires different logic
+        # SHAKE variants
         if eff_type == CameraEffectType.SHAKE:
-            return ShakeEffect(intensity=intensity)
+            return ShakeEffect(intensity=0.3, speed="normal")
+            
+        if eff_type == CameraEffectType.SHAKE_SLOW:
+            return ShakeEffect(intensity=0.15, speed="slow")
+            
+        if eff_type == CameraEffectType.SHAKE_FAST:
+            return ShakeEffect(intensity=0.5, speed="fast")
 
         return None
 
@@ -115,11 +121,18 @@ class CameraEffect(Effect):
 
 
 class ShakeEffect(Effect):
-    """Intense shaking effect for dramatic moments."""
+    """Intense shaking effect for dramatic moments.
     
-    def __init__(self, intensity: float = 0.3) -> None:
+    Supports variable speeds:
+    - slow: wider, slower movement (tension)
+    - normal: standard drama shake
+    - fast: rapid, jittery movement (impact/shock)
+    """
+    
+    def __init__(self, intensity: float = 0.3, speed: str = "normal") -> None:
         super().__init__(EffectConfig())
         self.intensity = intensity
+        self.speed = speed
 
     def get_filter_string(
         self,
@@ -131,23 +144,39 @@ class ShakeEffect(Effect):
         # Requires input to be slightly larger or we crop in
         # We'll zoom in 10% to give room for shake
         
-        # Note: This is an efficient "jitter" effect
-        # x = (random(1)-0.5) * intensity * pixel_range
+        # Shake parameters
+        # Frequency (hz): How fast it shakes
+        if self.speed == "slow":
+            freq = 2  # Hz
+            ampl_mult = 1.5  # Wider movement
+        elif self.speed == "fast":
+            freq = 15 # Hz
+            ampl_mult = 0.8  # Tighter movement
+        else: # normal
+            freq = 5  # Hz
+            ampl_mult = 1.0
+            
+        shake_px = int(50 * self.intensity * ampl_mult)
         
-        # Simplified for robustness:
-        # crop=w=iw*0.9:h=ih*0.9:x='(iw-ow)/2+((random(1)-0.5)*const)':y='...'
-        
-        shake_px = int(50 * self.intensity * 2)  # Shake amplitude in pixels
+        # Uses sine wave for smoother movement (slow) or random for jitter (fast)
+        if self.speed == "slow":
+            # Smooth tension shake
+            x_expr = f"(iw-ow)/2+sin(t*{freq})*{shake_px}"
+            y_expr = f"(ih-oh)/2+cos(t*{freq}*0.8)*{shake_px}"
+        else:
+            # Random jitter shake
+            x_expr = f"(iw-ow)/2+((random(1)-0.5)*{shake_px})"
+            y_expr = f"(ih-oh)/2+((random(1)-0.5)*{shake_px})"
         
         return (
             f"{input_label}"
             f"crop=w=iw*0.9:h=ih*0.9:"
-            f"x='(iw-ow)/2+((random(1)-0.5)*{shake_px})':"
-            f"y='(ih-oh)/2+((random(1)-0.5)*{shake_px})':"
+            f"x='{x_expr}':"
+            f"y='{y_expr}':"
             f"exact=1"
             f",scale=1080:1920"  # Resize back to full res
             f"{output_label}"
         )
 
     def get_effect_name(self) -> str:
-        return "ShockShake"
+        return f"ShockShake({self.speed})"

@@ -107,6 +107,11 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
    - Use sparingly: climax, revelation, dramatic turning points only
    - Remove if overused (more than 2 SFX in entire video)
 
+9. **Camera Effect Validation:**
+   - Valid options: static, zoom_in, zoom_out, pan_left, pan_right, shake, shake_slow, shake_fast
+   - **SHAKE CONSTRAINT**: If effect is 'shake' or 'shake_fast', duration MUST be <= 2.0s
+   - If a scene has 'shake_fast' and duration > 2.0s -> Change to 'shake_slow' or reduce duration
+
 **Input:**
 * Original Reddit Story (for context)
 * Draft Script (text or rough JSON)
