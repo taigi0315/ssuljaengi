@@ -38,6 +38,18 @@ class ScriptWriterAgent:
 - Create conversations, confrontations, and emotional exchanges
 - Narrator only for scene-setting or transitions
 
+**CRITICAL: Character Design Standards**
+You MUST define `character_profiles` for all 2-5 characters BEFORE writing acts.
+For each character, include:
+- Name (English only)
+- Age (e.g., "20s") & Gender
+- Role (Protagonist/Antagonist)
+- Personality Vibe (e.g., "Gloomy", "Bubbly")
+- Body Type (e.g., "Slim", "Muscular")
+- Hair (e.g., "Long messy black hair")
+- Face (e.g., "Sharp eyes with mole")
+- Outfit (e.g., "Worn-out gray hoodie")
+
 **Structure (Five Acts):**
 1. **The Hook** (0-3s): Immediate dialogue hook or dramatic statement
 2. **Setup** (3-10s): Character introduction through dialogue
@@ -115,66 +127,53 @@ Each scene must have:
 **CRITICAL**: Total video should be 30-45s max. Keep scenes SHORT and PUNCHY.
 **Target**: 3 seconds average per scene for maximum retention.
 
-**Example Scene (WEBTOON STYLE):**
+**Example Output Structure:**
 ```json
 {
-  "scene_id": "crisis_01",
-  "audio_chunks": [
+  "script_id": "example_script_001",
+  "title": "The Secret in the Attic",
+  "character_profiles": [
     {
-      "chunk_id": "crisis_01_narrator_01",
-      "chunk_type": "narration",
-      "speaker_id": "Narrator",
-      "speaker_gender": "female",
-      "text": "The truth was about to come out.",
-      "director_notes": "a suspenseful narrator building tension, hushed and mysterious",
-      "estimated_duration": 2.5
+      "name": "Mother",
+      "age": "45",
+      "gender": "Female",
+      "role": "Protagonist",
+      "personality_vibe": "Worried, Overprotective",
+      "body_type": "Average",
+      "hair_style_color": "Short curly brown hair",
+      "face_details_expression": "Wrinkles of worry, warm eyes",
+      "outfit": "Floral apron over house clothes"
     },
     {
-      "chunk_id": "crisis_01_mother_01",
-      "chunk_type": "dialogue",
-      "speaker_id": "Mother",
-      "speaker_gender": "female",
-      "text": "How could you do this to me?!",
-      "director_notes": "a betrayed mother confronting her child, voice trembling with hurt and anger",
-      "estimated_duration": 2.0,
-      "bubble_position": "top-right",
-      "bubble_style": "shout"
-    },
-    {
-      "chunk_id": "crisis_01_john_01",
-      "chunk_type": "dialogue",
-      "speaker_id": "John",
-      "speaker_gender": "male",
-      "text": "I had no choice...",
-      "director_notes": "a guilty confession with defensive undertones, avoiding eye contact",
-      "estimated_duration": 1.5,
-      "bubble_position": "bottom-left",
-      "bubble_style": "whisper"
+      "name": "John",
+      "age": "20s",
+      "gender": "Male",
+      "role": "Antagonist",
+      "personality_vibe": "Guilty, Nervous",
+      "body_type": "Slim",
+      "hair_style_color": "Messy black hair",
+      "face_details_expression": "Pale skin, dark circles",
+      "outfit": "Black hoodie and jeans"
     }
   ],
-  "bubble_metadata": [
+  "acts": [
     {
-      "chunk_id": "crisis_01_mother_01",
-      "text": "How could you do this to me?!",
-      "position": "top-right",
-      "style": "shout",
-      "character_name": "Mother"
+      "act_type": "hook",
+      "scenes": [...]
     },
     {
-      "chunk_id": "crisis_01_john_01",
-      "text": "I had no choice...",
-      "position": "bottom-left",
-      "style": "whisper",
-      "character_name": "John"
+      "act_type": "crisis",
+      "scenes": [
+        {
+          "scene_id": "crisis_01",
+          "audio_chunks": [...],
+          "visual_description": "Extreme Close-up (ECU) of Mother...",
+          "panel_layout": "...",
+          "camera_effect": "shake_slow"
+        }
+      ]
     }
-  ],
-  "visual_sfx": "DUN-DUN",
-  "camera_effect": "shake_slow",
-  "emotion": "dramatic",
-  "visual_description": "Extreme Close-up (ECU) on Mother's eyes wide with betrayal, tears streaming. High contrast lighting. John is just a dark silhouette in background.",
-  "panel_layout": "Split panel effect: Main focus on Mother's shattered expression (80%), John's guilty posture in shadow (20%)",
-  "characters_present": ["Mother", "John"],
-  "estimated_duration_seconds": 3.5
+  ]
 }
 ```
 

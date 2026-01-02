@@ -16,6 +16,9 @@ from gossiptoon.visual.gemini_client import GeminiImageClient
 
 logger = logging.getLogger(__name__)
 
+# TICKET-028: Standardized Character Sheet Prompt Template
+CHARACTER_SHEET_TEMPLATE = """A professional animation character design reference sheet, concept art, full body view of a {age} year old {gender}. {vibe} vibe. {body_type} build. Having {hair} hair, and {face}. Wearing {outfit}. Isolated against a plain solid white background. Focus solely on the character, clean lines, cel-shaded, webtoon style, flat colors, high quality,"""
+
 
 class VisualDirector:
     """Visual Director orchestrates image generation for all scenes.
@@ -139,14 +142,33 @@ class VisualDirector:
                 logger.info(f"Character {char_name} already in bank, skipping")
                 continue
 
-            # Get character description from first scene they appear in
-            char_description = self._get_character_description_from_script(
-                script, char_name
-            )
+            # Check for detailed character profile first (TICKET-028)
+            # Use getattr to safely access character_profiles as it might not exist in old scripts
+            profiles = getattr(script, "character_profiles", [])
+            profile = next((p for p in profiles if p.name == char_name), None)
 
-            # Create portrait-specific prompt with strict isolation
-            # TICKET-006: Forced single character generation
-            portrait_base_prompt = f"""Character design sheet for {char_name}:
+            if profile:
+                logger.info(f"Using detailed profile for character: {char_name}")
+                portrait_base_prompt = CHARACTER_SHEET_TEMPLATE.format(
+                    age=profile.age.replace("year old", "").strip(), # Clean up if LLM adds "year old"
+                    gender=profile.gender,
+                    vibe=profile.personality_vibe,
+                    body_type=profile.body_type,
+                    hair=profile.hair_style_color,
+                    face=profile.face_details_expression,
+                    outfit=profile.outfit
+                )
+                # Store structural description for bank reference
+                char_description = f"{char_name}: {profile.age} {profile.gender}, {profile.hair_style_color}, {profile.outfit}"
+            else:
+                # Fallback to legacy extraction
+                char_description = self._get_character_description_from_script(
+                    script, char_name
+                )
+
+                # Create portrait-specific prompt with strict isolation
+                # TICKET-006: Forced single character generation
+                portrait_base_prompt = f"""Character design sheet for {char_name}:
 {char_description}
 
 FORMAT: Single character full-body portrait on white background.

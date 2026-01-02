@@ -83,10 +83,12 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
      * Climax: 3-4s (peak)
      * Resolution: 2-3s (wrap-up)
 
-6. **Character Consistency:**
-   - Maintain consistent speaker_id across scenes
-   - Ensure speaker_gender is consistent for each character
-   - Validate characters_present matches audio_chunks speakers
+6. **Character Consistency & Profiles:**
+   - **CRITICAL**: Verify `character_profiles` list is populated with detailed visual data.
+   - All main speakers (except Narrator) MUST have a corresponding profile.
+   - Maintain consistent speaker_id across scenes.
+   - Ensure speaker_gender is consistent for each character.
+   - Validate characters_present matches audio_chunks speakers.
 
 7. **Text Normalization for TTS Compatibility:**
    - Remove stage directions and parentheticals from dialogue text
