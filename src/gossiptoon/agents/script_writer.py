@@ -332,7 +332,7 @@ Generate scenes with:
         )
         self.prompt = self._create_prompt()
         self.evaluator = ScriptEvaluator(config)
-        
+
         # Initialize Debugger
         # Assumes scripts_dir is outputs/{job_id}/scripts, so parent is outputs/{job_id}
         self.debugger = LLMDebugger(self.config.scripts_dir.parent)
@@ -351,8 +351,7 @@ Generate scenes with:
         # Inject config values into system prompt
         if self.config.script.webtoon_mode:
             system_prompt = self.SYSTEM_PROMPT.replace(
-                "MAX 30 words",
-                f"MAX {self.config.script.max_dialogue_chars} characters"
+                "MAX 30 words", f"MAX {self.config.script.max_dialogue_chars} characters"
             )
             # Escape braces for LangChain formatting (JSON examples)
             system_prompt = system_prompt.replace("{", "{{").replace("}", "}}")
@@ -406,10 +405,15 @@ Generate scenes with:
    - MIN 30 characters
 
 3. **Panel Layout** (Webtoon style):
-   - Describe ONE key moment (instant readability)
-   - Focus on facial expressions and angles
-   - Avoid complex multi-action descriptions
-   - MIN 20 characters
+   - **Template Selection**: 
+     - "single_image": Standard establishing shot
+     - "template_a_3panel": 3 vertical panels (Action scquences, rapid pacing)
+     - "template_b_4panel": 4 vertical panels (Dialogue-heavy, reaction shots)
+   - **Panel Descriptions**:
+     - If using single_image: Provide 1 vivid description
+     - If using 3-panel: Provide array of 3 descriptions [top, middle, bottom]
+     - If using 4-panel: Provide array of 4 descriptions [top, middle-1, middle-2, bottom]
+   - Focus on facial expressions and angles for each panel
 
 4. **Bubble Metadata**:
    - One entry per dialogue audio chunk
@@ -459,14 +463,19 @@ DO NOT return just the creative content - return the full Script with structure 
             ScriptGenerationError: If content generation fails
         """
         logger.info(f"Filling scaffold for story: {story.id}")
-        logger.info(f"Scaffold has {scaffold.get_scene_count()} scenes, "
-                   f"{len(scaffold.character_profiles)} characters")
+        logger.info(
+            f"Scaffold has {scaffold.get_scene_count()} scenes, "
+            f"{len(scaffold.character_profiles)} characters"
+        )
 
         try:
             # Create scaffold-filling prompt
-            scaffold_prompt = ChatPromptTemplate.from_messages([
-                ("system", self._create_scaffold_system_prompt()),
-                ("human", """Fill this script scaffold with creative content:
+            scaffold_prompt = ChatPromptTemplate.from_messages(
+                [
+                    ("system", self._create_scaffold_system_prompt()),
+                    (
+                        "human",
+                        """Fill this script scaffold with creative content:
 
 **Original Story:**
 Title: {title}
@@ -479,8 +488,9 @@ Category: {category}
 **Your Task:**
 1. For EACH scene in the scaffold, fill in:
    - audio_chunks: Create dialogue/narration (use provided character profiles)
-   - visual_description: Vivid description for image generation
-   - panel_layout: Webtoon panel description
+   - visual_description: Vivid description for image generation (overall vibe)
+   - panel_template: Select "single_image", "template_a_3panel", or "template_b_4panel"
+   - panel_descriptions: List of strings (count MUST match template: 1, 3, or 4)
    - bubble_metadata: Match dialogue chunks
    - camera_effect: Choose appropriate effect (or null)
    - visual_sfx: Add if scene is high-impact (max 2 total)
@@ -495,11 +505,14 @@ Category: {category}
 5. Keep audio chunks under {max_chars} characters
 
 Generate the COMPLETE script with all creative content filled in.
-""")
-            ])
+""",
+                    ),
+                ]
+            )
 
             # Format scaffold as JSON
             import json
+
             scaffold_json = json.dumps(scaffold.model_dump(mode="json"), indent=2)
 
             # Build messages
@@ -508,7 +521,7 @@ Generate the COMPLETE script with all creative content filled in.
                 content=story.content,
                 category=story.category.value,
                 scaffold_json=scaffold_json,
-                max_chars=self.config.script.max_dialogue_chars
+                max_chars=self.config.script.max_dialogue_chars,
             )
 
             # Generate creative content
@@ -528,9 +541,9 @@ Generate the COMPLETE script with all creative content filled in.
                     metadata={
                         "story_id": story.id,
                         "mode": "scaffold_fill",
-                        "scene_count": scaffold.get_scene_count()
+                        "scene_count": scaffold.get_scene_count(),
                     },
-                    duration_ms=duration_ms
+                    duration_ms=duration_ms,
                 )
             except Exception as log_e:
                 logger.warning(f"Failed to log interaction: {log_e}")
@@ -588,8 +601,11 @@ Generate the COMPLETE script with all creative content filled in.
                     agent_name="ScriptWriter",
                     prompt=messages,
                     response=response,
-                    metadata={"story_id": story.id, "mode": "webtoon" if self.config.script.webtoon_mode else "legacy"},
-                    duration_ms=duration_ms
+                    metadata={
+                        "story_id": story.id,
+                        "mode": "webtoon" if self.config.script.webtoon_mode else "legacy",
+                    },
+                    duration_ms=duration_ms,
                 )
             except Exception as log_e:
                 logger.warning(f"Failed to log interaction: {log_e}")
