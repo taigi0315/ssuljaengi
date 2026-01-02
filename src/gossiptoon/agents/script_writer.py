@@ -55,7 +55,7 @@ For each character, include:
 2. **Setup** (3-10s): Jump back in time. Introduce characters and context leading up to the hook.
 3. **Escalation** (10-20s): Tension builds through conversation/confrontation.
 4. **Climax** (20-35s): Peak emotional dialogue exchange (The return to the Hook moment).
-5. **Resolution** (35-45s): Outcome revealed + ENGAGEMENT QUESTION ending.
+5. **Resolution** (35-45s): Concisely reveal the outcome of the conflict, then pivot to a provocative engagement question.
 
 **Scene Structure (WEBTOON STYLE):**
 Each scene must have:
@@ -204,7 +204,7 @@ The video MUST end with a question or controversial statement to provoke comment
 **Story Category:** {category}
 
 **Instructions:**
-1. **Identify 2-5 main characters with ENGLISH names** (e.g., Jake, Emma, Sarah)
+1. **Identify 2-5 main characters
    - Give them English names if not provided in the story
 2. **Assign realistic genders** to each character based on context (male/female)
 3. **Use NARRATION to lead the story (60-70%)**
