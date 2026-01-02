@@ -510,10 +510,13 @@ DO NOT return just the creative content - return the full Script with structure 
 """
 
     async def fill_scaffold(self, story: Story, scaffold: Script) -> Script:
-        """Fill script scaffold with creative content.
+        """Fill script scaffold with creative content using act-by-act batch processing.
 
         This is the NEW workflow: receives structure from SceneStructurer,
         fills in dialogue, visuals, and creative elements.
+        
+        To handle large scripts (20-30 scenes), we process each act separately
+        to avoid LLM output size limits.
 
         Args:
             story: Original story for context
@@ -527,97 +530,166 @@ DO NOT return just the creative content - return the full Script with structure 
         """
         logger.info(f"Filling scaffold for story: {story.id}")
         logger.info(
-            f"Scaffold has {scaffold.get_scene_count()} scenes, "
+            f"Scaffold has {scaffold.get_scene_count()} scenes across {len(scaffold.acts)} acts, "
             f"{len(scaffold.character_profiles)} characters"
         )
 
         try:
-            # Create scaffold-filling prompt
-            scaffold_prompt = ChatPromptTemplate.from_messages(
+            filled_acts = []
+            
+            # Process each act separately to avoid LLM output size limits
+            for act_index, act in enumerate(scaffold.acts):
+                logger.info(
+                    f"Processing Act {act_index + 1}/{len(scaffold.acts)}: "
+                    f"{act.act_type.value} ({len(act.scenes)} scenes)"
+                )
+                
+                # Fill this single act
+                filled_act = await self._fill_single_act(story, scaffold, act)
+                filled_acts.append(filled_act)
+                
+                logger.info(f"Act {act_index + 1} completed: {len(filled_act.scenes)} scenes filled")
+            
+            # Combine all filled acts into final script
+            final_script = Script(
+                script_id=scaffold.script_id,
+                story_id=scaffold.story_id,
+                title=scaffold.title,
+                acts=filled_acts,
+                character_profiles=scaffold.character_profiles,
+                total_estimated_duration=scaffold.total_estimated_duration,
+                target_audience=scaffold.target_audience,
+                content_warnings=scaffold.content_warnings
+            )
+            
+            logger.info(
+                f"Scaffold filling complete: {len(final_script.acts)} acts, "
+                f"{final_script.get_scene_count()} scenes"
+            )
+            
+            return final_script
+
+        except Exception as e:
+            logger.error(f"Scaffold filling failed: {e}")
+            raise ScriptGenerationError(f"Failed to fill scaffold: {e}") from e
+
+    async def _fill_single_act(self, story: Story, full_scaffold: Script, act: Act) -> Act:
+        """Fill a single act with creative content.
+        
+        Args:
+            story: Original story for context
+            full_scaffold: Complete scaffold (for character profiles)
+            act: Single act to fill
+            
+        Returns:
+            Filled act with creative content
+            
+        Raises:
+            ScriptGenerationError: If act filling fails
+        """
+        try:
+            # Create prompt for filling this act
+            act_prompt = ChatPromptTemplate.from_messages(
                 [
                     ("system", self._create_scaffold_system_prompt()),
                     (
                         "human",
-                        """Fill this script scaffold with creative content:
+                        """Fill this SINGLE ACT with creative content:
 
 **Original Story:**
 Title: {title}
 Content: {content}
 Category: {category}
 
-**Script Scaffold (JSON):**
-{scaffold_json}
+**Character Profiles (for consistency):**
+{character_profiles}
+
+**Act to Fill (JSON):**
+{act_json}
 
 **Your Task:**
-1. For EACH scene in the scaffold, fill in:
+1. For EACH scene in this act, fill in:
    - audio_chunks: Create dialogue/narration (use provided character profiles)
-   - visual_description: Vivid description for image generation (overall vibe)
+   - visual_description: Vivid description for image generation
    - panel_template: Select "single_image", "template_a_3panel", or "template_b_4panel"
    - panel_descriptions: List of strings (count MUST match template: 1, 3, or 4)
    - bubble_metadata: Match dialogue chunks
    - camera_effect: Choose appropriate effect (or null)
-   - visual_sfx: Add if scene is high-impact (max 2 total)
+   - visual_sfx: Add if scene is high-impact (max 1-2 per act)
 
 2. KEEP ALL STRUCTURAL FIELDS UNCHANGED:
    - scene_id, order, estimated_duration_seconds
    - characters_present, emotion
-   - character_profiles, acts structure
+   - act_type, target_duration_seconds
 
 3. Follow webtoon style guidelines
 4. Maintain character consistency
 5. Keep audio chunks under {max_chars} characters
 
-Generate the COMPLETE script with all creative content filled in.
+Generate the COMPLETE act with all creative content filled in.
+Return ONLY this act as a valid Act JSON object.
 """,
                     ),
                 ]
             )
 
-            # Format scaffold as JSON
+            # Format act as JSON
             import json
-
-            scaffold_json = json.dumps(scaffold.model_dump(mode="json"), indent=2)
+            act_json = json.dumps(act.model_dump(mode="json"), indent=2)
+            
+            # Format character profiles
+            char_profiles_str = json.dumps(
+                [cp.model_dump(mode="json") for cp in full_scaffold.character_profiles],
+                indent=2
+            )
 
             # Build messages
-            messages = scaffold_prompt.format_messages(
+            messages = act_prompt.format_messages(
                 title=story.title,
-                content=story.content,
+                content=story.content[:1000],  # Truncate to save tokens
                 category=story.category.value,
-                scaffold_json=scaffold_json,
+                character_profiles=char_profiles_str,
+                act_json=act_json,
                 max_chars=self.config.script.max_dialogue_chars,
             )
 
-            # Generate creative content
-            logger.info("Generating creative content to fill scaffold...")
+            # Generate creative content for this act
+            logger.info(f"Calling LLM to fill {act.act_type.value} act...")
             start_time = datetime.now()
 
-            filled_script = await self.llm.with_structured_output(Script).ainvoke(messages)
+            filled_act = await self.llm.with_structured_output(Act).ainvoke(messages)
+            
+            if filled_act is None:
+                raise ScriptGenerationError(
+                    f"LLM returned None for act {act.act_type.value}! "
+                    f"This act has {len(act.scenes)} scenes."
+                )
 
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
 
             # Log interaction
             try:
                 self.debugger.log_interaction(
-                    agent_name="ScriptWriter_FillScaffold",
+                    agent_name=f"ScriptWriter_FillAct_{act.act_type.value}",
                     prompt=messages,
-                    response=filled_script,
+                    response=filled_act,
                     metadata={
                         "story_id": story.id,
-                        "mode": "scaffold_fill",
-                        "scene_count": scaffold.get_scene_count(),
+                        "mode": "act_fill",
+                        "act_type": act.act_type.value,
+                        "scene_count": len(act.scenes),
                     },
                     duration_ms=duration_ms,
                 )
             except Exception as log_e:
                 logger.warning(f"Failed to log interaction: {log_e}")
 
-            logger.info(f"Filled scaffold with creative content")
-
-            return filled_script
+            return filled_act
 
         except Exception as e:
-            logger.error(f"Scaffold filling failed: {e}")
-            raise ScriptGenerationError(f"Failed to fill scaffold: {e}") from e
+            logger.error(f"Act filling failed for {act.act_type.value}: {e}")
+            raise ScriptGenerationError(f"Failed to fill act {act.act_type.value}: {e}") from e
+
 
     @retry_with_backoff(max_retries=3, exceptions=(ScriptGenerationError,))
     async def write_script(self, story: Story) -> Script:
