@@ -2,6 +2,47 @@
 
 This document records the narrative of changes for the Ssuljaengi project.
 
+## [2026-01-02] TICKET-027: Refine & Diversify Visual Effects
+
+### Problem
+
+**Severity**: Medium (P2)
+**Issue**: Shake effect was too aggressive/monotonous. Lack of varied camera movements (Zoom/Pan) made videos feel static.
+
+### Implementation
+
+**1. Expanded VFX Library**
+
+- Added **Variable Shake**:
+  - `shake_slow`: 2Hz frequency, wide amplitude (Tension)
+  - `shake_fast`: 15Hz frequency, tight amplitude (Impact)
+- Exposed **KenBurns Effects**:
+  - `zoom_in`/`zoom_out`
+  - `pan_left`/`pan_right`
+
+**2. Agent Integration**
+
+- **ScriptWriter**: Added `camera_effect` options to prompt.
+- **ScriptEvaluator**: Added validation:
+  - Shake duration capped at **2.0s**
+  - Invalid effects rejected
+
+### Tests
+
+- Added `tests/unit/test_vfx_implementation.py`:
+  - Verified factory logic for new shake variants
+  - Verified FFmpeg filter generation
+
+### Commits
+
+- `136897a` - feat: Refine and diversify Visual Effects
+
+### Branch
+
+`feature/refine-diversify-vfx`
+
+---
+
 ## [2026-01-02] TICKET-026: Optimize Pacing for Shorts (3s Rule)
 
 ### Problem
