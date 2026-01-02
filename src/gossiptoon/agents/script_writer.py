@@ -370,8 +370,8 @@ Generate scenes with:
         # Use LangChain's ChatGoogleGenerativeAI (Unstructured for creativity)
         # Revert to Gemini 2.0 Flash Exp as per WEBTOON_ENGINE.md
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-pro",
-            temperature=0.9,  # High temperature for creativity
+            model=config.llm.script_writer_model,
+            temperature=config.llm.script_writer_temperature,
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
         )
@@ -385,7 +385,7 @@ Generate scenes with:
         # Log masked API key for verification
         key = config.api.google_api_key
         masked_key = f"{key[:4]}...{key[-4:]}" if key and len(key) > 8 else "INVALID"
-        logger.info(f"Initialized ScriptWriter with model=gemini-1.5-pro, key={masked_key}")
+        logger.info(f"Initialized ScriptWriter with model={config.llm.script_writer_model}, key={masked_key}")
 
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create prompt template with specific constraints.

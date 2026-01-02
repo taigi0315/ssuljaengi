@@ -205,6 +205,58 @@ class ScriptConfig(BaseModel):
         return v
 
 
+class LLMConfig(BaseModel):
+    """LLM model configuration for agents."""
+
+    # Scene Structurer (needs precision for structure)
+    scene_structurer_model: str = Field(
+        default="gemini-2.0-flash-exp",
+        description="Model for SceneStructurer agent (structure generation)"
+    )
+    scene_structurer_temperature: float = Field(
+        default=0.1,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for SceneStructurer"
+    )
+
+    # Script Writer (needs creativity)
+    script_writer_model: str = Field(
+        default="gemini-2.0-flash-exp",
+        description="Model for ScriptWriter agent (creative content)"
+    )
+    script_writer_temperature: float = Field(
+        default=0.9,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for ScriptWriter"
+    )
+
+    # Script Evaluator (needs precision for QA)
+    script_evaluator_model: str = Field(
+        default="gemini-2.0-flash-exp",
+        description="Model for ScriptEvaluator agent (QA validation)"
+    )
+    script_evaluator_temperature: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for ScriptEvaluator"
+    )
+
+    # Visual Detailer (needs creativity for descriptions)
+    visual_detailer_model: str = Field(
+        default="gemini-2.0-flash-exp",
+        description="Model for VisualDetailer agent (visual enrichment)"
+    )
+    visual_detailer_temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Temperature for VisualDetailer"
+    )
+
+
 class AppConfig(BaseModel):
     """Application-level configuration."""
 
@@ -305,6 +357,17 @@ class ConfigManager:
                 webtoon_mode=os.getenv("WEBTOON_MODE", "True").lower() == "true",
                 min_dialogue_chars=int(os.getenv("MIN_DIALOGUE_CHARS", "5")),
                 max_dialogue_chars=int(os.getenv("MAX_DIALOGUE_CHARS", "100")),
+            )
+
+            self.llm = LLMConfig(
+                scene_structurer_model=os.getenv("SCENE_STRUCTURER_MODEL", "gemini-2.0-flash-exp"),
+                scene_structurer_temperature=float(os.getenv("SCENE_STRUCTURER_TEMPERATURE", "0.1")),
+                script_writer_model=os.getenv("SCRIPT_WRITER_MODEL", "gemini-2.0-flash-exp"),
+                script_writer_temperature=float(os.getenv("SCRIPT_WRITER_TEMPERATURE", "0.9")),
+                script_evaluator_model=os.getenv("SCRIPT_EVALUATOR_MODEL", "gemini-2.0-flash-exp"),
+                script_evaluator_temperature=float(os.getenv("SCRIPT_EVALUATOR_TEMPERATURE", "0.3")),
+                visual_detailer_model=os.getenv("VISUAL_DETAILER_MODEL", "gemini-2.0-flash-exp"),
+                visual_detailer_temperature=float(os.getenv("VISUAL_DETAILER_TEMPERATURE", "0.7")),
             )
 
             output_dir_str = os.getenv("OUTPUT_DIR", str(DEFAULT_OUTPUT_DIR))

@@ -183,8 +183,8 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
 
         # Low temperature for deterministic structural output
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
-            temperature=0.1,  # Very low for consistent structure
+            model=config.llm.scene_structurer_model,
+            temperature=config.llm.scene_structurer_temperature,
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
         )
@@ -200,7 +200,7 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
         # Log initialization
         key = config.api.google_api_key
         masked_key = f"{key[:4]}...{key[-4:]}" if key and len(key) > 8 else "INVALID"
-        logger.info(f"Initialized SceneStructurer with model=gemini-2.0-flash-exp, temp=0.1, key={masked_key}")
+        logger.info(f"Initialized SceneStructurer with model={config.llm.scene_structurer_model}, temp={config.llm.scene_structurer_temperature}, key={masked_key}")
 
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create prompt template for structure generation.

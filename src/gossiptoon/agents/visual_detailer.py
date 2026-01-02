@@ -52,10 +52,10 @@ class VisualDetailerAgent:
             HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         }
 
-        # Use Gemini 2.0 Flash for speed and visual understanding
+        # Use Gemini for speed and visual understanding
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
-            temperature=0.7,
+            model=config.llm.visual_detailer_model,
+            temperature=config.llm.visual_detailer_temperature,
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
         )

@@ -130,9 +130,9 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
     def __init__(self, config: ConfigManager):
         self.config = config
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
+            model=config.llm.script_evaluator_model,
             google_api_key=self.config.api.google_api_key,
-            temperature=0.2,  # Low temperature for strict validation
+            temperature=config.llm.script_evaluator_temperature,
             convert_system_message_to_human=True,
         )
         self.structured_llm = self.llm.with_structured_output(Script)
