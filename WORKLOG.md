@@ -350,6 +350,26 @@ This document records the narrative of changes for the Ssuljaengi project.
   - Updated `WORKLOG.md`.
 - **Status**: Ready for Sprint 4 (Video Assembler & Visuals).
 
+## [2026-01-01] Validation Constraint Fixes (Script Generation)
+
+- **Issue**: Script generation failing with 48+ Pydantic validation errors across 3 attempts:
+  - `bubble_metadata` missing required `timestamp_start` and `timestamp_end` fields
+  - Scenes exceeding 15s max duration (BUILD/CRISIS acts generating 20s scenes)
+  - Total script duration 60.2s exceeding 60s max
+- **Root Causes**:
+  1. **Design flaw**: `BubbleMetadata.timestamp_start/end` were required fields, but timestamps can't be known until AFTER audio generation (Master Clock phase)
+  2. **Too restrictive constraints**: Scene max (15s) too tight for longer acts, total max (60s) left no buffer for speed adjustments
+- **Fixes Applied**:
+  1. **BubbleMetadata timestamps** (`src/gossiptoon/models/audio.py:83-84`):
+     - Changed from required to optional with `default=0.0`
+     - Updated description to clarify these are "populated during audio generation"
+  2. **Scene duration** (`src/gossiptoon/models/script.py:63`):
+     - Increased max from `15.0s` → `20.0s` to accommodate longer BUILD/CRISIS acts
+  3. **Total script duration** (`src/gossiptoon/core/constants.py:32`):
+     - Increased max from `60.0s` → `65.0s` to allow buffer for speed adjustments (still under 90s TikTok limit)
+- **Verification**: Models import successfully, defaults confirmed
+- **Status**: Ready for next pipeline run
+
 ## [2026-01-01] TICKET-024: Code Cleanup & E2E Debugging (Continued Fix) ✅
 
 - **Action**: Fixed critical circular import issue in AudioGenerator.

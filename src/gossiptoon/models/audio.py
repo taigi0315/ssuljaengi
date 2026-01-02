@@ -80,8 +80,8 @@ class BubbleMetadata(BaseModel):
     )
     style: str = Field(..., description="Bubble style ('speech', 'thought', 'shout', 'whisper')")
     character_name: str = Field(..., description="Character speaking")
-    timestamp_start: float = Field(ge=0, description="Start time in master timeline (seconds)")
-    timestamp_end: float = Field(ge=0, description="End time in master timeline (seconds)")
+    timestamp_start: float = Field(default=0.0, ge=0, description="Start time in master timeline (seconds, populated during audio generation)")
+    timestamp_end: float = Field(default=0.0, ge=0, description="End time in master timeline (seconds, populated during audio generation)")
 
     class Config:
         """Pydantic config."""
