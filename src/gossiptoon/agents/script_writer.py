@@ -67,6 +67,19 @@ Each scene must have:
    - Links to audio_chunk
    - Position and style for each dialogue
 
+4. **visual_sfx** (OPTIONAL): Sound effect keyword for dramatic moments
+   - Use sparingly (only for HIGH-IMPACT scenes: climax, shock, revelation)
+   - Choose from available SFX library:
+     * TENSION: DOOM, DUN-DUN, LOOM, RUMBLE (shocking reveals, ominous moments)
+     * ACTION: SQUEEZE, GRAB, GRIP, CLENCH, CRUSH (physical intensity)
+     * IMPACT: BAM!, WHAM!, THUD, TA-DA! (sudden events, victory)
+   - Examples:
+     - Crisis scene with betrayal reveal: "DUN-DUN"
+     - Climax scene with confrontation: "BAM!"
+     - Resolution scene with happy ending: "TA-DA!"
+     - Dark secret revealed: "DOOM"
+   - **IMPORTANT**: Only 1-2 SFX per video (overuse kills impact)
+
 **Director's Notes Examples:**
 - Narration: "a mysterious narrator setting the scene in a noir film, deep and ominous"
 - Dialogue: "a betrayed friend confronting someone, voice cracking with emotion"
@@ -141,6 +154,7 @@ Each scene must have:
       "character_name": "John"
     }
   ],
+  "visual_sfx": "DUN-DUN",
   "emotion": "dramatic",
   "visual_description": "Dramatic confrontation scene in dimly lit kitchen, Mother's face showing betrayal and hurt, John looking guilty and defensive",
   "characters_present": ["Mother", "John"],

@@ -85,6 +85,15 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
    - Spell out abbreviations that TTS can't handle
    - Ensure all text in audio_chunks is clean and TTS-friendly
 
+8. **Sound Effects (visual_sfx) Validation:**
+   - OPTIONAL field - only for HIGH-IMPACT scenes (1-2 per video max)
+   - If present, must be valid SFX keyword:
+     * TENSION: DOOM, DUN-DUN, LOOM, RUMBLE
+     * ACTION: SQUEEZE, GRAB, GRIP, CLENCH, CRUSH
+     * IMPACT: BAM!, WHAM!, THUD, TA-DA!
+   - Use sparingly: climax, revelation, dramatic turning points only
+   - Remove if overused (more than 2 SFX in entire video)
+
 **Input:**
 * Original Reddit Story (for context)
 * Draft Script (text or rough JSON)
