@@ -384,7 +384,8 @@ class FFmpegBuilder:
         # Keys that are handled specially and should NOT become FFmpeg flags
         excluded_keys = [
             "video_codec", "preset", "crf", "audio_codec", 
-            "audio_bitrate", "sample_rate", "subtitle_file", "subtitles_path"
+            "audio_bitrate", "sample_rate", "subtitle_file", "subtitles_path",
+            "fonts_dir",  # Handled inside specific filters
         ]
 
         # Add custom options
