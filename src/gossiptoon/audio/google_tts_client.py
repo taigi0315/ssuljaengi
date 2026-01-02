@@ -263,15 +263,22 @@ class GoogleTTSClient(TTSClient):
         """
         try:
             from google.genai import types
+            import re
 
             client = self._init_client()
+            
+            # Preprocess text for TTS compatibility
+            # Google TTS struggles with abbreviations like $28M, $1M
+            preprocessed_text = self._preprocess_text_for_tts(text)
+            if preprocessed_text != text:
+                logger.debug(f"Text preprocessed: '{text}' → '{preprocessed_text}'")
 
             # Build styled prompt using the "Director" method
             # Priority: style_instruction > emotion > plain text
             if style_instruction:
-                styled_prompt = self._build_custom_styled_prompt(text, style_instruction)
+                styled_prompt = self._build_custom_styled_prompt(preprocessed_text, style_instruction)
             elif emotion:
-                styled_prompt = self._build_emotion_styled_prompt(text, emotion)
+                styled_prompt = self._build_emotion_styled_prompt(preprocessed_text, emotion)
             else:
                 styled_prompt = text
 
@@ -505,3 +512,34 @@ class GoogleTTSClient(TTSClient):
 
         # Add small buffer for pauses and style
         return duration * 1.15
+
+    def _preprocess_text_for_tts(self, text: str) -> str:
+        """Preprocess text to handle cases where Google TTS fails.
+        
+        Google TTS API sometimes returns empty content for:
+        - Abbreviated numbers like $28M, $1M
+        - Complex special characters
+        
+        Args:
+            text: Original text
+            
+        Returns:
+            Preprocessed text safe for TTS
+        """
+        import re
+        
+        # Replace abbreviated millions/billions
+        # $28M → $28 million
+        text = re.sub(r'\$(\d+)M\b', r'$\1 million', text)
+        text = re.sub(r'\$(\d+)B\b', r'$\1 billion', text)
+        
+        # Replace abbreviated thousands
+        # $5K → $5 thousand
+        text = re.sub(r'\$(\d+)K\b', r'$\1 thousand', text)
+        
+        # Normalize other common abbreviations
+        text = re.sub(r'\b(\d+)M\b', r'\1 million', text)
+        text = re.sub(r'\b(\d+)B\b', r'\1 billion', text)
+        text = re.sub(r'\b(\d+)K\b', r'\1 thousand', text)
+        
+        return text
