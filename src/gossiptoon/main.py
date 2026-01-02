@@ -109,8 +109,8 @@ def validate(config: Optional[str]):
 @click.option(
     "--subreddits",
     "-s",
-    default="AmItheAsshole,tifu,relationship_advice",
-    help="Comma-separated list of subreddits"
+    default=None,
+    help="Comma-separated list of subreddits (defaults to config)"
 )
 @click.option(
     "--time-filter",
@@ -128,15 +128,17 @@ def validate(config: Optional[str]):
 )
 @click.option(
     "--min-upvotes",
-    default=1000,
+    "-u",
+    default=None,
     type=int,
-    help="Minimum upvote threshold"
+    help="Minimum upvote threshold (defaults to config)"
 )
 @click.option(
     "--min-comments",
-    default=100,
+    "-m",
+    default=None,
     type=int,
-    help="Minimum comment count"
+    help="Minimum comment count (defaults to config)"
 )
 @click.option(
     "--config",
@@ -145,11 +147,11 @@ def validate(config: Optional[str]):
     help="Path to config file",
 )
 def discover(
-    subreddits: str,
+    subreddits: Optional[str],
     time_filter: str,
     limit: int,
-    min_upvotes: int,
-    min_comments: int,
+    min_upvotes: Optional[int],
+    min_comments: Optional[int],
     config: Optional[str],
 ):
     """Discover viral Reddit stories automatically.
@@ -157,8 +159,10 @@ def discover(
     Example:
         gossiptoon discover --subreddits AITA,TIFU --limit 10
     """
+    target_subreddits = subreddits.split(",") if subreddits else None
+
     asyncio.run(_discover_stories(
-        subreddits=subreddits.split(","),
+        subreddits=target_subreddits,
         time_filter=time_filter,
         limit=limit,
         min_upvotes=min_upvotes,
@@ -450,11 +454,11 @@ def _display_error(result):
 
 
 async def _discover_stories(
-    subreddits: List[str],
+    subreddits: Optional[List[str]],
     time_filter: str,
     limit: int,
-    min_upvotes: int,
-    min_comments: int,
+    min_upvotes: Optional[int],
+    min_comments: Optional[int],
     config_path: Optional[str] = None,
 ):
     """Discover viral stories from Reddit."""
@@ -464,11 +468,16 @@ async def _discover_stories(
         # Load config
         config = _load_config(config_path)
 
+        # Use defaults from config if not provided
+        target_subreddits = subreddits or config.reddit.subreddits
+        target_min_upvotes = min_upvotes if min_upvotes is not None else config.reddit.min_upvotes
+        target_min_comments = min_comments if min_comments is not None else config.reddit.min_comments
+
         # Display header
         console.print(
             Panel.fit(
                 "[bold magenta]Reddit Story Discovery[/bold magenta]\n"
-                f"[dim]Subreddits: {', '.join(['r/' + s for s in subreddits])}[/dim]\n"
+                f"[dim]Subreddits: {', '.join(['r/' + s for s in target_subreddits])}[/dim]\n"
                 f"[dim]Time filter: {time_filter} | Limit: {limit}[/dim]",
                 border_style="magenta",
             )
@@ -488,11 +497,11 @@ async def _discover_stories(
         ) as progress:
             task = progress.add_task("Discovering stories...", total=None)
             stories = await crawler.discover_stories(
-                subreddits=subreddits,
+                subreddits=target_subreddits,
                 time_filter=time_filter,
                 limit=limit,
-                min_upvotes=min_upvotes,
-                min_comments=min_comments,
+                min_upvotes=target_min_upvotes,
+                min_comments=target_min_comments,
             )
 
         # Display results
