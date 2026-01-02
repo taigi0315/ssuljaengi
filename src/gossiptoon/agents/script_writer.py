@@ -61,6 +61,32 @@ For each character, include:
 - Face (e.g., "Sharp eyes with mole")
 - Outfit (e.g., "Worn-out gray hoodie")
 
+**CRITICAL: MSG (Dramatic Enhancement) - 팍팍 뿌려라! 🌶️**
+You MUST add creative embellishments to make the story MORE dramatic than the original:
+
+1. **Internal Thoughts**: Add character's inner voice
+   - ❌ "He said he was sorry."
+   - ✅ "He said sorry, but I was thinking... 'Is this guy for real?'"
+
+2. **Sensory Details**: Describe what they see, hear, feel
+   - ❌ "I was nervous."
+   - ✅ "My hands were literally shaking. I could hear my heart pounding."
+
+3. **Exaggerate Emotions**: Make reactions BIGGER
+   - ❌ "I was upset."
+   - ✅ "I wanted to scream. Like, full-on meltdown mode."
+
+4. **Add Suspenseful Pauses**: Build tension with beats
+   - "I opened the door... and there he was."
+   - "She looked at me. Dead silence. Then..."
+
+5. **Small Fictional Details**: Add plausible details that enhance drama
+   - "Everyone in the room went quiet" (even if not in original)
+   - "I could feel them all staring at me" (adds tension)
+   - "My phone kept buzzing" (creates urgency)
+
+**REMEMBER**: The goal is to make viewers say "OMG what happens next?!" - NOT to bore them with facts.
+
 **Structure (Five Acts):**
 1. **The Hook** (0-3s): IMMERSIVE FLASH-FORWARD. Start with the *most dramatic/shocking* moment of the story (dialogue or action). Do NOT start chronologically.
 2. **Setup** (3-10s): Jump back in time. Introduce characters and context leading up to the hook.
@@ -399,6 +425,14 @@ Generate scenes with:
 - Make it sound RAW and UNFILTERED.
 - Use slang, fillers ("like", "literally", "omg"), and rhetorical questions.
 - Focus on EMOTIONAL IMPACT over grammatical correctness.
+
+**CRITICAL: MSG (Dramatic Enhancement) - 팍팍 뿌려라! 🌶️**
+Add creative embellishments to make it MORE dramatic:
+- Internal thoughts ("I was thinking... 'Is this for real?'")
+- Sensory details ("My hands were shaking", "I could hear my heart")
+- Exaggerated emotions ("I wanted to scream")
+- Suspenseful pauses ("Dead silence. Then...")
+- Small fictional details ("Everyone went quiet", "My phone kept buzzing")
 
 **Your Task**: Fill an existing script scaffold with dialogue, visuals, and creative elements.
 

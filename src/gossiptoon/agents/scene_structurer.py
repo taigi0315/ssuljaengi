@@ -44,11 +44,11 @@ class SceneStructurerAgent:
      * outfit: Detailed clothing description
 
 2. **5-Act Structure** (EXACT ORDER):
-   - Act 1: HOOK (target: 0.5-2s) - HIGH INTENSITY (shock/drama)
-   - Act 2: BUILD (target: 2-4s)
-   - Act 3: CRISIS (target: 3-4s)
-   - Act 4: CLIMAX (target: 3-4s)
-   - Act 5: RESOLUTION (target: 2-3s)
+   - Act 1: HOOK (target: 2-5s) - HIGH INTENSITY (shock/drama)
+   - Act 2: BUILD (target: 10-20s) - Character development and context
+   - Act 3: CRISIS (target: 20-40s) - Extended escalation
+   - Act 4: CLIMAX (target: 30-50s) - Peak drama with full impact
+   - Act 5: RESOLUTION (target: 10-20s) - Satisfying conclusion
 
    For each act:
    - `act_type`: Correct enum value (hook, build, crisis, climax, resolution)
@@ -76,25 +76,25 @@ class SceneStructurerAgent:
    - `script_id`: Generate unique ID (format: "script_YYYYMMDD_HHMMSS_random")
    - `story_id`: Copy from input story
    - `title`: Extract from story title
-   - `total_estimated_duration`: Sum of all scene durations (MUST be 40-58s)
+   - `total_estimated_duration`: Sum of all scene durations (MUST be 60-150s, target 120s)
    - `target_audience`: "general"
    - `content_warnings`: [] (empty array)
 
 **Duration Calculation Rules:**
-- Total video duration: 40-58 seconds (target: 50s)
-- Scene duration: 2.0-4.0s (average 3.0s)
-- Number of scenes: 12-15 scenes total across 5 acts
-- Hook: 1 scene (2s)
-- Build: 2-3 scenes (6-9s total)
-- Crisis: 3-4 scenes (9-12s total)
-- Climax: 3-4 scenes (9-12s total)
-- Resolution: 2-3 scenes (6-9s total)
+- Total video duration: 60-150 seconds (target: 120s for 2-minute storytelling)
+- Scene duration: 3.0-6.0s (average 4.5s for detailed narration)
+- Number of scenes: 20-30 scenes total across 5 acts
+- Hook: 1-2 scenes (2-5s total)
+- Build: 3-5 scenes (10-20s total)
+- Crisis: 5-8 scenes (20-40s total)
+- Climax: 6-10 scenes (30-50s total)
+- Resolution: 3-5 scenes (10-20s total)
 
 **Scene Allocation Strategy:**
 Based on story complexity:
-- Simple story (< 500 words): 12 scenes
-- Medium story (500-1000 words): 14 scenes
-- Complex story (> 1000 words): 15 scenes
+- Simple story (< 500 words): 20 scenes
+- Medium story (500-1000 words): 25 scenes
+- Complex story (> 1000 words): 30 scenes
 
 Distribute scenes to match story pacing.
 
@@ -224,8 +224,8 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
 1. Identify 2-5 main characters
 2. Create detailed character profiles
 3. Generate 5-act structure (hook, build, crisis, climax, resolution)
-4. Allocate 12-15 scenes across acts based on story length
-5. Calculate scene durations to total 40-58 seconds
+4. Allocate 20-30 scenes across acts based on story length
+5. Calculate scene durations to total 60-150 seconds (target 120s)
 6. Assign characters to scenes
 7. Set placeholder emotions
 8. Leave ALL creative fields empty
@@ -319,16 +319,16 @@ Generate the complete script scaffold now.
 
         # Validate scene count
         scene_count = scaffold.get_scene_count()
-        if not (12 <= scene_count <= 15):
+        if not (20 <= scene_count <= 30):
             logger.warning(
-                f"Scene count {scene_count} outside recommended range 12-15"
+                f"Scene count {scene_count} outside recommended range 20-30"
             )
 
         # Validate duration
-        if not (40 <= scaffold.total_estimated_duration <= 58):
+        if not (60 <= scaffold.total_estimated_duration <= 150):
             logger.warning(
                 f"Total duration {scaffold.total_estimated_duration}s "
-                f"outside target range 40-58s"
+                f"outside target range 60-150s"
             )
 
         # Validate all scenes have order field
