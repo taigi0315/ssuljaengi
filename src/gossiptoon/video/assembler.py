@@ -113,7 +113,7 @@ class VideoAssembler:
             output_file=output_file,
             subtitles_path=subtitle_file,
             engagement_overlay=engagement_overlay_file,  # NEW
-            fonts_dir=self.config.root_dir / "assets/fonts", # Pass fonts directory
+            fonts_dir=self.config.root_dir / "assets/fonts/nanum-myeongjo", # Pass fonts directory
         )
 
         # Execute FFmpeg
@@ -322,7 +322,7 @@ class VideoAssembler:
 
         # Create generator
         generator = SubtitleGenerator(
-            font_name="KOMIKZ", # Assumes font is loaded by FFmpeg
+            font_name="NanumMyeongjo", # Assumes font is loaded by FFmpeg
             rapid_font_size=80,
             sentence_font_size=64,
         )
