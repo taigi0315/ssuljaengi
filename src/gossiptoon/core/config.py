@@ -358,14 +358,14 @@ class ConfigManager:
                 min_dialogue_chars=int(os.getenv("MIN_DIALOGUE_CHARS", "5")),
                 max_dialogue_chars=int(os.getenv("MAX_DIALOGUE_CHARS", "100")),
             )
-
+           # LLM Configuration
             self.llm = LLMConfig(
-                scene_structurer_model=os.getenv("SCENE_STRUCTURER_MODEL", "gemini-2.0-flash-exp"),
-                scene_structurer_temperature=float(os.getenv("SCENE_STRUCTURER_TEMPERATURE", "0.1")),
-                script_writer_model=os.getenv("SCRIPT_WRITER_MODEL", "gemini-2.0-flash-exp"),
-                script_writer_temperature=float(os.getenv("SCRIPT_WRITER_TEMPERATURE", "0.9")),
-                script_evaluator_model=os.getenv("SCRIPT_EVALUATOR_MODEL", "gemini-2.0-flash-exp"),
-                script_evaluator_temperature=float(os.getenv("SCRIPT_EVALUATOR_TEMPERATURE", "0.3")),
+                scene_structurer_model=os.getenv("LLM_SCENE_STRUCTURER_MODEL", "gemini-2.0-flash-exp"),
+                scene_structurer_temperature=float(os.getenv("LLM_SCENE_STRUCTURER_TEMPERATURE", "0.1")),
+                script_writer_model=os.getenv("LLM_SCRIPT_WRITER_MODEL", "gemini-2.0-flash-exp"),
+                script_writer_temperature=float(os.getenv("LLM_SCRIPT_WRITER_TEMPERATURE", "0.7")),
+                script_evaluator_model=os.getenv("LLM_SCRIPT_EVALUATOR_MODEL", "gemini-2.0-flash-exp"),
+                script_evaluator_temperature=float(os.getenv("LLM_SCRIPT_EVALUATOR_TEMPERATURE", "0.3")),
                 visual_detailer_model=os.getenv("VISUAL_DETAILER_MODEL", "gemini-2.0-flash-exp"),
                 visual_detailer_temperature=float(os.getenv("VISUAL_DETAILER_TEMPERATURE", "0.7")),
             )

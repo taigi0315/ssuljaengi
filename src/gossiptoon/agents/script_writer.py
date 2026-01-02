@@ -653,17 +653,46 @@ Return ONLY this act as a valid Act JSON object.
                 max_chars=self.config.script.max_dialogue_chars,
             )
 
-            # Generate creative content for this act
-            logger.info(f"Calling LLM to fill {act.act_type.value} act...")
+            # Generate creative content for this act with retry logic
+            logger.info(f"Calling LLM to fill {act.act_type.value} act ({len(act.scenes)} scenes)...")
             start_time = datetime.now()
 
-            filled_act = await self.llm.with_structured_output(Act).ainvoke(messages)
+            # Retry logic (max 3 attempts)
+            filled_act = None
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"Attempt {attempt + 1}/{max_retries} for {act.act_type.value} act...")
+                    filled_act = await self.llm.with_structured_output(Act).ainvoke(messages)
+                    
+                    if filled_act is not None:
+                        logger.info(f"✅ {act.act_type.value} act filled successfully on attempt {attempt + 1}")
+                        break
+                    else:
+                        logger.warning(
+                            f"⚠️ LLM returned None for {act.act_type.value} act "
+                            f"(attempt {attempt + 1}/{max_retries})"
+                        )
+                        if attempt < max_retries - 1:
+                            import asyncio
+                            logger.info(f"Waiting 2 seconds before retry...")
+                            await asyncio.sleep(2)
+                except Exception as retry_error:
+                    logger.error(
+                        f"❌ Act filling attempt {attempt + 1} failed for {act.act_type.value}: {retry_error}"
+                    )
+                    if attempt < max_retries - 1:
+                        import asyncio
+                        logger.info(f"Waiting 2 seconds before retry...")
+                        await asyncio.sleep(2)
             
             if filled_act is None:
-                raise ScriptGenerationError(
-                    f"LLM returned None for act {act.act_type.value}! "
+                error_msg = (
+                    f"LLM returned None for {act.act_type.value} act after {max_retries} attempts! "
                     f"This act has {len(act.scenes)} scenes."
                 )
+                logger.error(f"❌ CRITICAL: {error_msg}")
+                raise ScriptGenerationError(error_msg)
 
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
 

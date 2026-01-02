@@ -257,13 +257,19 @@ Apply QA fixes and return the polished script.
         validated_acts = []
         
         for act_index, act in enumerate(script.acts):
-            logger.info(f"Validating Act {act_index + 1}/{len(script.acts)}: {act.act_type.value}")
+            logger.info(f"📝 Validating Act {act_index + 1}/{len(script.acts)}: {act.act_type.value}")
+            logger.info(f"📝 Act has {len(act.scenes)} scenes")
             
             # Validate this single act
             validated_act = await self._validate_single_act(act, story)
+            
+            logger.info(f"📝 _validate_single_act returned: {type(validated_act)}")
+            if validated_act is None:
+                raise Exception(f"❌ CRITICAL: _validate_single_act returned None for {act.act_type.value}!")
+            
             validated_acts.append(validated_act)
             
-            logger.info(f"Act {act_index + 1} validated: {len(validated_act.scenes)} scenes")
+            logger.info(f"✅ Act {act_index + 1} validated: {len(validated_act.scenes)} scenes")
         
         # Combine all validated acts
         validated_script = Script(
@@ -348,7 +354,30 @@ Apply QA fixes and return the polished act.
             })
 
             start_time = datetime.now()
-            validated_act = await self.llm.with_structured_output(Act).ainvoke(formatted_prompt)
+            
+            # Retry logic for LLM validation (max 3 attempts)
+            validated_act = None
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    validated_act = await self.llm.with_structured_output(Act).ainvoke(formatted_prompt)
+                    
+                    if validated_act is not None:
+                        break  # Success!
+                    else:
+                        logger.warning(f"Act validation returned None (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            import asyncio
+                            await asyncio.sleep(1)  # Wait 1 second before retry
+                except Exception as retry_error:
+                    logger.warning(f"Act validation attempt {attempt + 1} failed: {retry_error}")
+                    if attempt < max_retries - 1:
+                        import asyncio
+                        await asyncio.sleep(1)
+            
+            if validated_act is None:
+                raise Exception(f"Act validation failed after {max_retries} attempts - LLM returned None")
+            
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
 
             self.debugger.log_interaction(

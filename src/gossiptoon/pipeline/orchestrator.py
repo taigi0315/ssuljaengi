@@ -431,7 +431,15 @@ class PipelineOrchestrator:
 
             # Step 3: QA validation and polish
             logger.info("Step 3/3: QA validation and polish...")
+            logger.info(f"📝 Calling validate_script with filled_script: {type(filled_script)}")
+            logger.info(f"📝 filled_script has {len(filled_script.acts)} acts")
+            
             final_script = await self.script_evaluator.validate_script(filled_script, story)
+            
+            logger.info(f"📝 validate_script returned: {type(final_script)}")
+            if final_script is None:
+                raise GossipToonException("❌ CRITICAL: validate_script returned None!")
+            
             logger.info(f"Script validated: {final_script.get_scene_count()} scenes")
 
             # Step 4: Visual Enrichment (TICKET-038)
