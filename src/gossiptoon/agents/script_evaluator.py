@@ -128,7 +128,7 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
     def __init__(self, config: ConfigManager):
         self.config = config
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-exp",
             google_api_key=self.config.api.google_api_key,
             temperature=0.2,  # Low temperature for strict validation
             convert_system_message_to_human=True,
@@ -174,7 +174,7 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
 
 3. **Constraint Checks**:
    - Audio chunk text: MAX 100 characters (warn if exceeded)
-   - Visual SFX: MAX 2 per video (remove excess)
+   - Visual SFX: MAX 5 per video (remove excess)
    - Shake effects: Duration MUST be <= 2.0s
 
 4. **Character Consistency**:

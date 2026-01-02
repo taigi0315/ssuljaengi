@@ -28,7 +28,7 @@ WHISPER_MODELS = ["tiny", "base", "small", "medium", "large"]
 DEFAULT_WHISPER_MODEL = "base"
 
 # Script configuration
-MIN_SCRIPT_DURATION = 40.0  # seconds (was 30.0)
+MIN_SCRIPT_DURATION = 30.0  # seconds (was 30.0, then 40.0, back to 30.0 for flexibility)
 MAX_SCRIPT_DURATION = 65.0  # seconds (allows buffer for speed adjustments, still under 90s TikTok limit)
 TARGET_SCRIPT_DURATION = 55.0  # seconds (target sweet spot)
 MAX_SCENE_NARRATION_WORDS = 35  # slightly relaxed but still concise

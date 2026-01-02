@@ -73,7 +73,7 @@ Each scene must have:
    - Choose from available SFX library:
      * TENSION: DOOM, DUN-DUN, LOOM, RUMBLE (shocking reveals, ominous moments)
      * ACTION: SQUEEZE, GRAB, GRIP, CLENCH, CRUSH (physical intensity)
-     * IMPACT: BAM!, WHAM!, THUD, TA-DA! (sudden events, victory)
+     * IMPACT: BAM!, BOOM!, WHAM!, THUD, TA-DA! (sudden events, victory)
    - Examples:
      - Crisis scene with betrayal reveal: "DUN-DUN"
      - Climax scene with confrontation: "BAM!"
@@ -318,10 +318,15 @@ Generate scenes with:
             HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         }
 
+        # Validate API Key
+        if not config.api.google_api_key or config.api.google_api_key == "INVALID":
+            logger.error("Google API Key is missing or invalid")
+            raise ValueError("Google API Key is missing or invalid. Check .env file.")
+
         # Use LangChain's ChatGoogleGenerativeAI (Unstructured for creativity)
-        # Revert to Gemini 2.5 Flash as per WEBTOON_ENGINE.md
+        # Revert to Gemini 2.0 Flash Exp as per WEBTOON_ENGINE.md
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-exp",
             temperature=0.9,  # High temperature for creativity
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
@@ -336,7 +341,7 @@ Generate scenes with:
         # Log masked API key for verification
         key = config.api.google_api_key
         masked_key = f"{key[:4]}...{key[-4:]}" if key and len(key) > 8 else "INVALID"
-        logger.info(f"Initialized ScriptWriter with model=gemini-2.5-flash, key={masked_key}")
+        logger.info(f"Initialized ScriptWriter with model=gemini-2.0-flash-exp, key={masked_key}")
 
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create prompt template with specific constraints.
@@ -417,7 +422,7 @@ Generate scenes with:
 
 6. **Visual SFX** (optional, max 2 total):
    - HIGH-IMPACT scenes only
-   - Options: DOOM, DUN-DUN, LOOM, RUMBLE, SQUEEZE, GRAB, BAM!, WHAM!, THUD, TA-DA!
+   - Options: DOOM, DUN-DUN, LOOM, RUMBLE, SQUEEZE, GRAB, BAM!, BOOM!, WHAM!, THUD, TA-DA!
 
 **CRITICAL RULES:**
 1. DO NOT change any structural fields (scene_id, order, estimated_duration_seconds)

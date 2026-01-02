@@ -537,7 +537,7 @@ class PipelineOrchestrator:
         if sfx_list:
             logger.info(f"Applying {len(sfx_list)} SFX overlays to master audio...")
             
-            mixer = AudioSFXMixer(sfx_volume=0.5)  # 50% volume - balanced with narration
+            mixer = AudioSFXMixer(sfx_volume=0.8)  # 80% volume - increased for better audibility
             master_audio_path = audio_project.master_audio_path
             
             # Create mixed audio with all SFX
@@ -703,7 +703,7 @@ class PipelineOrchestrator:
             metadata = await generator.generate_metadata(story, script)
             
             # Save to disk
-            output_dir = self.config.outputs_dir / self.checkpoint_manager.job_id / "youtube"
+            output_dir = self.config.outputs_dir / self.config.job_id / "youtube"
             output_dir.mkdir(parents=True, exist_ok=True)
             
             # Save formats

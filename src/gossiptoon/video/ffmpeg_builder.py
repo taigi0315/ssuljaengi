@@ -133,6 +133,9 @@ class FFmpegBuilder:
         # Build inputs
         inputs = self._build_inputs(segments, master_audio)
 
+        if subtitles_path:
+            options["subtitles_path"] = subtitles_path
+
         # Build filter complex
         filter_complex = self._build_filter_complex(
             segments, 

@@ -62,7 +62,7 @@ class SceneStructurerAgent:
    - `estimated_duration_seconds`: Duration (2.0-4.0s, avg 3.0s)
    - `characters_present`: List of character names in this scene
    - `emotion`: Placeholder emotion (e.g., "neutral", "dramatic")
-   - `visual_description`: PLACEHOLDER ONLY (e.g., "Scene description goes here")
+   - `visual_description`: PLACEHOLDER ONLY (e.g., "Visual description placeholder for script structure generation")
 
    EMPTY FIELDS (Leave empty for ScriptWriter to fill):
    - `audio_chunks`: [] (empty array)
@@ -112,7 +112,7 @@ excited, shocked, sympathetic, dramatic, angry, happy, sad, neutral, suspenseful
 
 **Example Output Structure:**
 ```json
-{
+{{
   "script_id": "script_20260102_120000_abc123",
   "story_id": "story_id_from_input",
   "title": "Story Title Here",
@@ -120,7 +120,7 @@ excited, shocked, sympathetic, dramatic, angry, happy, sad, neutral, suspenseful
   "target_audience": "general",
   "content_warnings": [],
   "character_profiles": [
-    {
+    {{
       "name": "Emily",
       "age": "20s",
       "gender": "Female",
@@ -130,31 +130,31 @@ excited, shocked, sympathetic, dramatic, angry, happy, sad, neutral, suspenseful
       "hair_style_color": "Long wavy brown hair",
       "face_details_expression": "Wide eyes, worried expression",
       "outfit": "Casual sweater and jeans"
-    }
+    }}
   ],
   "acts": [
-    {
+    {{
       "act_type": "hook",
       "target_duration_seconds": 2.0,
       "scenes": [
-        {
+        {{
           "scene_id": "hook_01",
           "order": 0,
           "audio_chunks": [],
           "panel_layout": null,
           "bubble_metadata": [],
           "emotion": "neutral",
-          "visual_description": "Placeholder for visual description",
+          "visual_description": "Visual description placeholder for script structure generation",
           "characters_present": ["Emily"],
           "estimated_duration_seconds": 2.0,
           "camera_effect": null,
           "visual_sfx": null,
           "narration": null
-        }
+        }}
       ]
-    }
+    }}
   ]
-}
+}}
 ```
 
 **Your Output:**
@@ -176,9 +176,14 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
             HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         }
 
+        # Validate API Key
+        if not config.api.google_api_key or config.api.google_api_key == "INVALID":
+            logger.error("Google API Key is missing or invalid")
+            raise ValueError("Google API Key is missing or invalid. Check .env file.")
+
         # Low temperature for deterministic structural output
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-exp",
             temperature=0.1,  # Very low for consistent structure
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
@@ -195,7 +200,7 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
         # Log initialization
         key = config.api.google_api_key
         masked_key = f"{key[:4]}...{key[-4:]}" if key and len(key) > 8 else "INVALID"
-        logger.info(f"Initialized SceneStructurer with model=gemini-2.5-flash, temp=0.1, key={masked_key}")
+        logger.info(f"Initialized SceneStructurer with model=gemini-2.0-flash-exp, temp=0.1, key={masked_key}")
 
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create prompt template for structure generation.
