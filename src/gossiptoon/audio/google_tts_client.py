@@ -296,8 +296,21 @@ class GoogleTTSClient(TTSClient):
                 ),
             )
 
+            # Validate response
+            if not response or not response.candidates:
+                raise AudioGenerationError(
+                    f"Empty response from Google TTS API. Text: '{text[:50]}...'"
+                )
+            
+            candidate = response.candidates[0]
+            if not candidate.content or not candidate.content.parts:
+                raise AudioGenerationError(
+                    f"No audio content in response. Text: '{text[:50]}...', "
+                    f"Response: {response}"
+                )
+
             # Extract audio data (PCM format)
-            audio_data = response.candidates[0].content.parts[0].inline_data.data
+            audio_data = candidate.content.parts[0].inline_data.data
 
             # Save as WAV (Google TTS returns PCM at 24kHz)
             if output_path is None:
