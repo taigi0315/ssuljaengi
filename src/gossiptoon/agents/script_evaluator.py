@@ -209,6 +209,12 @@ Apply QA fixes and return the polished script.
         ])
 
         try:
+            # For large scripts (>20 scenes), validate act-by-act to avoid LLM output size limits
+            if script.get_scene_count() > 20:
+                logger.info(f"Large script detected ({script.get_scene_count()} scenes), using act-by-act validation")
+                return await self._validate_script_by_acts(script, story)
+            
+            # For smaller scripts, validate all at once
             import json
             script_json = json.dumps(script.model_dump(mode="json"), indent=2)
 
@@ -235,6 +241,130 @@ Apply QA fixes and return the polished script.
         except Exception as e:
             logger.error(f"Script validation failed: {e}")
             raise e
+
+    async def _validate_script_by_acts(self, script: Script, story: Story) -> Script:
+        """Validate script act-by-act for large scripts.
+        
+        Args:
+            script: Complete script to validate
+            story: Original story for context
+            
+        Returns:
+            Validated script
+        """
+        logger.info(f"Validating {len(script.acts)} acts separately...")
+        
+        validated_acts = []
+        
+        for act_index, act in enumerate(script.acts):
+            logger.info(f"Validating Act {act_index + 1}/{len(script.acts)}: {act.act_type.value}")
+            
+            # Validate this single act
+            validated_act = await self._validate_single_act(act, story)
+            validated_acts.append(validated_act)
+            
+            logger.info(f"Act {act_index + 1} validated: {len(validated_act.scenes)} scenes")
+        
+        # Combine all validated acts
+        validated_script = Script(
+            script_id=script.script_id,
+            story_id=script.story_id,
+            title=script.title,
+            acts=validated_acts,
+            character_profiles=script.character_profiles,
+            total_estimated_duration=script.total_estimated_duration,
+            target_audience=script.target_audience,
+            content_warnings=script.content_warnings
+        )
+        
+        logger.info(f"Script validation complete: {validated_script.get_scene_count()} scenes")
+        return validated_script
+
+    async def _validate_single_act(self, act: Act, story: Story) -> Act:
+        """Validate a single act.
+        
+        Args:
+            act: Act to validate
+            story: Original story for context
+            
+        Returns:
+            Validated act
+        """
+        simplified_prompt = """You are a QA Editor for Korean Webtoon YouTube Shorts.
+
+**CRITICAL: The script structure is ALREADY CORRECT. Only validate and polish.**
+
+**Your QA Checklist:**
+
+1. **Enum Validation**: Fix any invalid enum values
+   - emotion: excited, shocked, sympathetic, dramatic, angry, happy, sad, neutral, suspenseful, sarcastic, frustrated, determined, relieved, exasperated
+   - camera_effect: ken_burns, fade_transition, caption, zoom_in, zoom_out, pan_left, pan_right, pan_up, pan_down, shake, shake_slow, shake_fast, static, loom
+
+2. **Text Normalization**:
+   - Remove parentheticals from audio chunk text (move to director_notes)
+   - Normalize numbers: $1M → $1 million, 5K → 5 thousand
+   - Clean TTS-incompatible characters
+
+3. **Constraint Checks**:
+   - Audio chunk text: MAX 100 characters (warn if exceeded)
+   - Visual SFX: MAX 2 per act (remove excess)
+   - Shake effects: Duration MUST be <= 2.0s
+
+4. **Character Consistency**:
+   - Verify speaker_id exists
+   - Check speaker_gender consistency
+
+**DO NOT:**
+- Change structure (scene_id, order, durations)
+- Remove `target_duration_seconds` from Act
+- Add/remove scenes
+- Rewrite creative content
+
+**Output:**
+Return the act with minor QA fixes applied. Preserve all structure and creative content.
+"""
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", simplified_prompt),
+            ("human", """Validate and polish this act:
+
+**Original Story (for context):**
+{story_title}
+
+**Act (JSON):**
+{act_json}
+
+Apply QA fixes and return the polished act.
+""")
+        ])
+
+        try:
+            import json
+            act_json = json.dumps(act.model_dump(mode="json"), indent=2)
+
+            formatted_prompt = await prompt.ainvoke({
+                "story_title": story.title,
+                "act_json": act_json
+            })
+
+            start_time = datetime.now()
+            validated_act = await self.structured_llm.with_structured_output(Act).ainvoke(formatted_prompt)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+
+            self.debugger.log_interaction(
+                agent_name=f"ScriptEvaluator_QA_{act.act_type.value}",
+                prompt=formatted_prompt,
+                response=validated_act,
+                metadata={"story_id": story.id, "mode": "qa_act", "act_type": act.act_type.value},
+                duration_ms=duration_ms
+            )
+
+            return validated_act
+
+        except Exception as e:
+            logger.error(f"Act validation failed for {act.act_type.value}: {e}")
+            raise e
+
 
     async def evaluate_and_fix(self, draft_content: str, story: Story) -> Script:
         """Process the draft script into a valid Script object (LEGACY 2-AGENT WORKFLOW)."""
