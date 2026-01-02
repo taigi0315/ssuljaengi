@@ -243,7 +243,9 @@ STRICTLY SINGLE CHARACTER. NO background elements, NO other people."""
         logger.info(f"Generating image for scene: {scene.scene_id}")
 
         # Build enhanced prompt with character descriptions for consistency
-        base_prompt = scene.visual_description
+        # Use panel_layout if available (Webtoon style), else visual_description/base_prompt
+        # This enables "multi panel in a image" as requested
+        primary_description = scene.panel_layout if scene.panel_layout else scene.visual_description
         
         # Add character descriptions to prompt for Gemini consistency
         # (Since Gemini doesn't support true I2I, we embed descriptions in text)
@@ -257,13 +259,18 @@ STRICTLY SINGLE CHARACTER. NO background elements, NO other people."""
                         f"IMPORTANT - {char_name} must appear exactly as described: {description[:200]}"
                     )
 
+        # Build enhanced prompt
         if character_info_parts:
-            enhanced_prompt = f"""{base_prompt}
+            enhanced_prompt = f"""{primary_description}
 
 CHARACTER CONSISTENCY REQUIREMENTS:
 {chr(10).join(character_info_parts)}"""
         else:
-            enhanced_prompt = base_prompt
+            enhanced_prompt = primary_description
+
+        # Explicitly request panel layout if field is present
+        if scene.panel_layout:
+             enhanced_prompt += "\n\nSTYLE: Vertical Webtoon Panel Layout. Split image into dynamic panels if description specifies multiple actions."
 
         # Add visual SFX if specified
         if hasattr(scene, 'visual_sfx') and scene.visual_sfx:

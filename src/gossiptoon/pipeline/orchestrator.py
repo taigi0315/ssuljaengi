@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Optional
 
 from gossiptoon.agents.engagement_writer import EngagementWriter
+from gossiptoon.agents.scene_structurer import SceneStructurerAgent
+from gossiptoon.agents.script_evaluator import ScriptEvaluator
 from gossiptoon.agents.script_writer import ScriptWriterAgent
 from gossiptoon.agents.story_finder import StoryFinderAgent
 from gossiptoon.audio.generator import AudioGenerator
@@ -87,8 +89,13 @@ class PipelineOrchestrator:
 
         # Initialize components
         self.story_finder = StoryFinderAgent(config)
+
+        # NEW 3-AGENT SCRIPT GENERATION WORKFLOW
+        self.scene_structurer = SceneStructurerAgent(config)
         self.script_writer = ScriptWriterAgent(config)
-        self.engagement_writer = EngagementWriter(api_key=config.api.google_api_key)  # NEW
+        self.script_evaluator = ScriptEvaluator(config)
+
+        self.engagement_writer = EngagementWriter(api_key=config.api.google_api_key)
         self.audio_generator = AudioGenerator(config)
         self.visual_director = VisualDirector(config)
         self.video_assembler = VideoAssembler(config)
@@ -96,7 +103,10 @@ class PipelineOrchestrator:
         # Checkpoint manager
         self.checkpoint_manager = CheckpointManager(config.checkpoints_dir)
 
-        logger.info("Pipeline orchestrator initialized")
+        # Use new 3-agent workflow by default
+        self.use_new_workflow = True
+
+        logger.info("Pipeline orchestrator initialized (3-AGENT WORKFLOW)")
 
     async def run(
         self,
@@ -383,15 +393,57 @@ class PipelineOrchestrator:
     async def _run_script_writer(self, story: Story) -> Script:
         """Run script writer stage.
 
+        Uses 3-agent workflow by default:
+        1. SceneStructurer: Generates structure scaffold
+        2. ScriptWriter: Fills scaffold with creative content
+        3. ScriptEvaluator: QA validation and polish
+
         Args:
             story: Story object
 
         Returns:
             Script object
         """
-        script = await self.script_writer.write_script(story)
-        logger.info(f"Script generated: {len(script.acts)} acts, {script.get_scene_count()} scenes")
-        return script
+        if self.use_new_workflow:
+            logger.info("Using NEW 3-agent workflow (Structure-First)")
+
+            # Step 1: Generate scaffold (structure only)
+            logger.info("Step 1/3: Generating script scaffold...")
+            scaffold = await self.scene_structurer.generate_scaffold(story)
+            logger.info(
+                f"Scaffold complete: {scaffold.get_scene_count()} scenes, "
+                f"{len(scaffold.character_profiles)} characters, "
+                f"{scaffold.total_estimated_duration}s"
+            )
+
+            # Step 2: Fill scaffold with creative content
+            logger.info("Step 2/3: Filling scaffold with creative content...")
+            filled_script = await self.script_writer.fill_scaffold(story, scaffold)
+            logger.info(f"Creative content filled: {len(filled_script.acts)} acts")
+
+            # Step 3: QA validation and polish
+            logger.info("Step 3/3: QA validation and polish...")
+            final_script = await self.script_evaluator.validate_script(filled_script, story)
+            logger.info(f"Script validated: {final_script.get_scene_count()} scenes")
+
+            # Post-validation (metadata, etc.)
+            final_script = self.script_writer._validate_and_enhance_script(final_script, story)
+
+            # Save script
+            self.script_writer._save_script(final_script)
+
+            logger.info(
+                f"3-AGENT WORKFLOW COMPLETE: {len(final_script.acts)} acts, "
+                f"{final_script.get_scene_count()} scenes"
+            )
+            return final_script
+
+        else:
+            # LEGACY 2-agent workflow
+            logger.info("Using LEGACY 2-agent workflow")
+            script = await self.script_writer.write_script(story)
+            logger.info(f"Script generated: {len(script.acts)} acts, {script.get_scene_count()} scenes")
+            return script
 
     async def _run_engagement_writer(self, script: Script):
         """Run engagement writer stage.
@@ -485,7 +537,7 @@ class PipelineOrchestrator:
         if sfx_list:
             logger.info(f"Applying {len(sfx_list)} SFX overlays to master audio...")
             
-            mixer = AudioSFXMixer(sfx_volume=0.5)  # 50% volume - balanced with narration
+            mixer = AudioSFXMixer(sfx_volume=0.8)  # 80% volume - increased for better audibility
             master_audio_path = audio_project.master_audio_path
             
             # Create mixed audio with all SFX
@@ -651,7 +703,7 @@ class PipelineOrchestrator:
             metadata = await generator.generate_metadata(story, script)
             
             # Save to disk
-            output_dir = self.config.outputs_dir / self.checkpoint_manager.job_id / "youtube"
+            output_dir = self.config.outputs_dir / self.config.job_id / "youtube"
             output_dir.mkdir(parents=True, exist_ok=True)
             
             # Save formats

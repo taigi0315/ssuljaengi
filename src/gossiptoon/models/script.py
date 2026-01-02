@@ -16,19 +16,18 @@ from gossiptoon.core.constants import (
 from gossiptoon.models.audio import AudioChunk, BubbleMetadata
 
 
-
 class CharacterProfile(BaseModel):
-    """Detailed character design profile for consistent image generation."""
-    
-    name: str = Field(..., description="Character Name")
-    age: str = Field(..., description="Age (e.g., '20s', '45')")
+    """Profile for a character in the story."""
+
+    name: str = Field(..., description="English name")
+    age: str = Field(..., description="Age group (e.g. '20s')")
     gender: str = Field(..., description="Gender")
-    role: str = Field(..., description="Role in story (Protagonist, Antagonist, etc.)")
-    personality_vibe: str = Field(..., description="Vibe/Personality (e.g., 'Gloomy', 'Bubby', 'Strict')")
-    body_type: str = Field(..., description="Body Build (e.g., 'Slim', 'Muscular', 'Chubby')")
+    role: str = Field(..., description="Role (Protagonist, Antagonist, Supporting)")
+    personality_vibe: str = Field(..., description="Personality descriptor")
+    body_type: str = Field(..., description="Body type")
     hair_style_color: str = Field(..., description="Hair style and color")
-    face_details_expression: str = Field(..., description="Facial features and default expression")
-    outfit: str = Field(..., description="Detailed outfit description")
+    face_details_expression: str = Field(..., description="Facial details")
+    outfit: str = Field(..., description="Outfit description")
 
 
 class Scene(BaseModel):
@@ -173,9 +172,9 @@ class Scene(BaseModel):
             ValueError: If neither narration nor audio_chunks is provided
         """
         if not self.narration and not self.audio_chunks:
-            raise ValueError(
-                "Scene must have either 'narration' (legacy) or 'audio_chunks' (webtoon)"
-            )
+            # Allow empty for scaffold stage
+            # print("Warning: Scene has neither 'narration' nor 'audio_chunks' (acceptable for scaffold)")
+            pass
 
     def is_webtoon_style(self) -> bool:
         """Check if this is a webtoon-style scene with dialogue.
@@ -307,11 +306,8 @@ class Script(BaseModel):
     )
     target_audience: str = Field(default="general", description="Target audience")
     content_warnings: list[str] = Field(default_factory=list, description="Content warnings if any")
-    
-    # New: Detailed character profiles
     character_profiles: list[CharacterProfile] = Field(
-        default_factory=list, 
-        description="Detailed character design profiles for consistent generation"
+        default_factory=list, description="Character profiles for consistent visuals/voice"
     )
 
     @field_validator("acts")
