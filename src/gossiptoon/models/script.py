@@ -60,7 +60,7 @@ class Scene(BaseModel):
         default_factory=list, description="Character names in this scene"
     )
     estimated_duration_seconds: float = Field(
-        ge=0.5, le=15.0, description="Estimated scene duration (shorter max for faster pacing)"
+        ge=0.5, le=20.0, description="Estimated scene duration (relaxed max for BUILD/CRISIS acts)"
     )
     camera_effect: Optional[CameraEffectType] = Field(
         default=None, description="Recommended camera movement/effect for this scene"

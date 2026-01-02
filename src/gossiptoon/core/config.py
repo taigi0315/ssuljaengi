@@ -99,9 +99,23 @@ class VideoConfig(BaseModel):
 class AudioConfig(BaseModel):
     """Audio generation configuration."""
 
+    # TTS Provider Selection
+    tts_provider: str = Field(
+        default="google", description="TTS provider: 'elevenlabs' or 'google'"
+    )
+
+    # ElevenLabs Configuration
     default_voice_id: str = Field(
         default="21m00Tcm4TlvDq8ikWAM", description="Default ElevenLabs voice ID"
     )
+
+    # Google TTS Configuration
+    google_tts_voice: str = Field(default="Kore", description="Google TTS prebuilt voice name")
+    google_tts_model: str = Field(
+        default="gemini-2.5-flash-preview-tts", description="Google TTS model"
+    )
+
+    # Whisper Configuration
     whisper_model: str = Field(default=DEFAULT_WHISPER_MODEL, description="Whisper model size")
 
     # Audio Dynamics

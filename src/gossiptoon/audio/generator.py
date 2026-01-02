@@ -9,6 +9,7 @@ from typing import Optional
 from gossiptoon.audio.audio_processor import AudioProcessor
 from gossiptoon.audio.base import TTSClient
 from gossiptoon.audio.elevenlabs_client import ElevenLabsClient
+from gossiptoon.audio.google_tts_client import GoogleTTSClient
 from gossiptoon.audio.whisper import WhisperTimestampExtractor
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.core.constants import EmotionTone
@@ -35,12 +36,23 @@ class AudioGenerator:
 
         Args:
             config: Configuration manager
-            tts_client: Optional TTS client (defaults to ElevenLabs)
+            tts_client: Optional TTS client (auto-selected based on config if not provided)
         """
         self.config = config
 
-        # Use provided TTS client or default to ElevenLabs
-        self.tts_client = tts_client or ElevenLabsClient(api_key=config.api.elevenlabs_api_key)
+        # Auto-select TTS client based on configuration
+        if tts_client:
+            self.tts_client = tts_client
+        elif config.audio.tts_provider == "google":
+            logger.info("Using Google TTS 2.5 Flash")
+            self.tts_client = GoogleTTSClient(
+                api_key=config.api.google_api_key,
+                model=config.audio.google_tts_model,
+                default_voice=config.audio.google_tts_voice,
+            )
+        else:
+            logger.info("Using ElevenLabs TTS")
+            self.tts_client = ElevenLabsClient(api_key=config.api.elevenlabs_api_key)
 
         self.whisper = WhisperTimestampExtractor(model_name=config.audio.whisper_model)
 
@@ -271,9 +283,15 @@ class AudioGenerator:
         """
         from gossiptoon.models.audio import AudioChunkType
 
+        # Determine default voice based on TTS provider
+        if isinstance(self.tts_client, GoogleTTSClient):
+            default_voice = self.config.audio.google_tts_voice
+        else:
+            default_voice = self.config.audio.default_voice_id
+
         # Narrator uses default voice
         if speaker_id == "Narrator" or chunk_type == AudioChunkType.NARRATION:
-            return self.config.audio.default_voice_id
+            return default_voice
 
         # For dialogue, use gender-based voice selection (Google TTS)
         if hasattr(self.tts_client, "get_recommended_voice_for_gender"):
@@ -289,7 +307,7 @@ class AudioGenerator:
             return voice_id
 
         # Fallback to default voice
-        return self.config.audio.default_voice_id
+        return default_voice
 
     async def _generate_scene_audio_chunks(
         self,
