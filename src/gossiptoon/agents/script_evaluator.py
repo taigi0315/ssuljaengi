@@ -139,9 +139,103 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
         # Assumes scripts_dir is outputs/{job_id}/scripts
         self.debugger = LLMDebugger(self.config.scripts_dir.parent)
 
+    async def validate_script(self, script: Script, story: Story) -> Script:
+        """Validate and polish a complete script (NEW 3-AGENT WORKFLOW).
+
+        This method is for the new workflow where structure is already guaranteed.
+        It performs QA-only: validates enums, normalizes text, checks constraints.
+
+        Args:
+            script: Complete script from ScriptWriter
+            story: Original story for context
+
+        Returns:
+            Validated and polished script
+
+        Raises:
+            Exception: If validation fails critically
+        """
+        logger.info("Validating complete script (QA-only)...")
+
+        simplified_prompt = """You are a QA Editor for Korean Webtoon YouTube Shorts.
+
+**CRITICAL: The script structure is ALREADY CORRECT. Only validate and polish.**
+
+**Your QA Checklist:**
+
+1. **Enum Validation**: Fix any invalid enum values
+   - emotion: excited, shocked, sympathetic, dramatic, angry, happy, sad, neutral, suspenseful, sarcastic, frustrated, determined, relieved, exasperated
+   - camera_effect: ken_burns, fade_transition, caption, zoom_in, zoom_out, pan_left, pan_right, pan_up, pan_down, shake, shake_slow, shake_fast, static, loom
+
+2. **Text Normalization**:
+   - Remove parentheticals from audio chunk text (move to director_notes)
+   - Normalize numbers: $1M → $1 million, 5K → 5 thousand
+   - Clean TTS-incompatible characters
+
+3. **Constraint Checks**:
+   - Audio chunk text: MAX 100 characters (warn if exceeded)
+   - Visual SFX: MAX 2 per video (remove excess)
+   - Shake effects: Duration MUST be <= 2.0s
+
+4. **Character Consistency**:
+   - Verify speaker_id matches character_profiles
+   - Check speaker_gender consistency
+
+**DO NOT:**
+- Change structure (scene_id, order, durations)
+- Modify character_profiles
+- Add/remove scenes or acts
+- Rewrite creative content
+
+**Output:**
+Return the script with minor QA fixes applied. Preserve all structure and creative content.
+"""
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", simplified_prompt),
+            ("human", """Validate and polish this script:
+
+**Original Story (for context):**
+{story_title}
+
+**Script (JSON):**
+{script_json}
+
+Apply QA fixes and return the polished script.
+""")
+        ])
+
+        try:
+            import json
+            script_json = json.dumps(script.model_dump(mode="json"), indent=2)
+
+            formatted_prompt = await prompt.ainvoke({
+                "story_title": story.title,
+                "script_json": script_json
+            })
+
+            start_time = datetime.now()
+            validated_script = await self.structured_llm.ainvoke(formatted_prompt)
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+
+            self.debugger.log_interaction(
+                agent_name="ScriptEvaluator_QA",
+                prompt=formatted_prompt,
+                response=validated_script,
+                metadata={"story_id": story.id, "mode": "qa_only"},
+                duration_ms=duration_ms
+            )
+
+            logger.info(f"Script validated: {validated_script.get_scene_count()} scenes")
+            return validated_script
+
+        except Exception as e:
+            logger.error(f"Script validation failed: {e}")
+            raise e
+
     async def evaluate_and_fix(self, draft_content: str, story: Story) -> Script:
-        """Process the draft script into a valid Script object."""
-        logger.info("Evaluating and formatting draft script...")
+        """Process the draft script into a valid Script object (LEGACY 2-AGENT WORKFLOW)."""
+        logger.info("Evaluating and formatting draft script (LEGACY)...")
 
         # Prepare dynamic enum lists
         valid_emotions = ", ".join([e.value for e in EmotionTone])
@@ -171,7 +265,7 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
             start_time = datetime.now()
             script = None
             error = None
-            
+
             try:
                 script = await self.structured_llm.ainvoke(formatted_prompt)
             except Exception as e:
@@ -179,7 +273,7 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
                 raise e
             finally:
                 duration_ms = (datetime.now() - start_time).total_seconds() * 1000
-                
+
                 # 3. Log Interaction
                 self.debugger.log_interaction(
                     agent_name="ScriptEvaluator",

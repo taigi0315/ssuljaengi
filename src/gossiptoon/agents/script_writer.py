@@ -347,7 +347,7 @@ Generate scenes with:
         # Inject config values into system prompt
         if self.config.script.webtoon_mode:
             system_prompt = self.SYSTEM_PROMPT.replace(
-                "MAX 30 words", 
+                "MAX 30 words",
                 f"MAX {self.config.script.max_dialogue_chars} characters"
             )
             # Escape braces for LangChain formatting (JSON examples)
@@ -365,9 +365,186 @@ Generate scenes with:
             ]
         )
 
+    def _create_scaffold_system_prompt(self) -> str:
+        """Create system prompt for scaffold-filling mode.
+
+        Returns:
+            System prompt for filling scaffolds with creative content
+        """
+        return """You are a Creative Content Writer for Korean Webtoon YouTube Shorts.
+
+**CRITICAL: You are filling a PRE-BUILT STRUCTURE. Focus ONLY on creative content.**
+
+**Your Task**: Fill an existing script scaffold with dialogue, visuals, and creative elements.
+
+**What You Receive:**
+- Original Reddit story (for context)
+- Complete script scaffold with:
+  * Character profiles (already created)
+  * 5-act structure (already built)
+  * Scene IDs, order, durations (already set)
+  * Empty audio_chunks, visual_description, panel_layout
+
+**What You Must Generate:**
+
+1. **Audio Chunks** (for each scene):
+   - Create 1-3 audio chunks per scene
+   - Types: "narration", "dialogue", or "internal"
+   - Use character names from provided profiles
+   - MAX 100 characters per chunk
+   - Add director_notes (MIN 10 chars) for TTS styling
+   - For dialogue: add bubble_position and bubble_style
+
+2. **Visual Description**:
+   - Vivid, detailed description for image generation
+   - Include character poses, expressions, environment
+   - Photorealistic or webtoon style (as appropriate)
+   - MIN 30 characters
+
+3. **Panel Layout** (Webtoon style):
+   - Describe ONE key moment (instant readability)
+   - Focus on facial expressions and angles
+   - Avoid complex multi-action descriptions
+   - MIN 20 characters
+
+4. **Bubble Metadata**:
+   - One entry per dialogue audio chunk
+   - Match character_name, text, position, style
+
+5. **Camera Effect** (optional):
+   - Choose from: static, zoom_in, zoom_out, pan_left, pan_right, shake, shake_slow, shake_fast
+   - Use null for most scenes
+
+6. **Visual SFX** (optional, max 2 total):
+   - HIGH-IMPACT scenes only
+   - Options: DOOM, DUN-DUN, LOOM, RUMBLE, SQUEEZE, GRAB, BAM!, WHAM!, THUD, TA-DA!
+
+**CRITICAL RULES:**
+1. DO NOT change any structural fields (scene_id, order, estimated_duration_seconds)
+2. DO NOT modify character_profiles
+3. DO NOT change act structure or target_duration_seconds
+4. DO NOT add/remove scenes
+5. ONLY fill creative content fields
+
+**Style Guidelines:**
+- Use NARRATION to lead (60-70%)
+- Add DIALOGUE for emotional moments (30-40%)
+- Main character narrates in first-person (Reddit style)
+- Create vibrant, expressive webtoon panels
+- Maintain character consistency
+
+**Output:**
+Return the COMPLETE Script object with all creative fields filled.
+DO NOT return just the creative content - return the full Script with structure intact.
+"""
+
+    async def fill_scaffold(self, story: Story, scaffold: Script) -> Script:
+        """Fill script scaffold with creative content.
+
+        This is the NEW workflow: receives structure from SceneStructurer,
+        fills in dialogue, visuals, and creative elements.
+
+        Args:
+            story: Original story for context
+            scaffold: Script structure from SceneStructurer
+
+        Returns:
+            Complete script with creative content
+
+        Raises:
+            ScriptGenerationError: If content generation fails
+        """
+        logger.info(f"Filling scaffold for story: {story.id}")
+        logger.info(f"Scaffold has {scaffold.get_scene_count()} scenes, "
+                   f"{len(scaffold.character_profiles)} characters")
+
+        try:
+            # Create scaffold-filling prompt
+            scaffold_prompt = ChatPromptTemplate.from_messages([
+                ("system", self._create_scaffold_system_prompt()),
+                ("human", """Fill this script scaffold with creative content:
+
+**Original Story:**
+Title: {title}
+Content: {content}
+Category: {category}
+
+**Script Scaffold (JSON):**
+{scaffold_json}
+
+**Your Task:**
+1. For EACH scene in the scaffold, fill in:
+   - audio_chunks: Create dialogue/narration (use provided character profiles)
+   - visual_description: Vivid description for image generation
+   - panel_layout: Webtoon panel description
+   - bubble_metadata: Match dialogue chunks
+   - camera_effect: Choose appropriate effect (or null)
+   - visual_sfx: Add if scene is high-impact (max 2 total)
+
+2. KEEP ALL STRUCTURAL FIELDS UNCHANGED:
+   - scene_id, order, estimated_duration_seconds
+   - characters_present, emotion
+   - character_profiles, acts structure
+
+3. Follow webtoon style guidelines
+4. Maintain character consistency
+5. Keep audio chunks under {max_chars} characters
+
+Generate the COMPLETE script with all creative content filled in.
+""")
+            ])
+
+            # Format scaffold as JSON
+            import json
+            scaffold_json = json.dumps(scaffold.model_dump(mode="json"), indent=2)
+
+            # Build messages
+            messages = scaffold_prompt.format_messages(
+                title=story.title,
+                content=story.content,
+                category=story.category.value,
+                scaffold_json=scaffold_json,
+                max_chars=self.config.script.max_dialogue_chars
+            )
+
+            # Generate creative content
+            logger.info("Generating creative content to fill scaffold...")
+            start_time = datetime.now()
+
+            filled_script = await self.llm.with_structured_output(Script).ainvoke(messages)
+
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+
+            # Log interaction
+            try:
+                self.debugger.log_interaction(
+                    agent_name="ScriptWriter_FillScaffold",
+                    prompt=messages,
+                    response=filled_script,
+                    metadata={
+                        "story_id": story.id,
+                        "mode": "scaffold_fill",
+                        "scene_count": scaffold.get_scene_count()
+                    },
+                    duration_ms=duration_ms
+                )
+            except Exception as log_e:
+                logger.warning(f"Failed to log interaction: {log_e}")
+
+            logger.info(f"Filled scaffold with creative content")
+
+            return filled_script
+
+        except Exception as e:
+            logger.error(f"Scaffold filling failed: {e}")
+            raise ScriptGenerationError(f"Failed to fill scaffold: {e}") from e
+
     @retry_with_backoff(max_retries=3, exceptions=(ScriptGenerationError,))
     async def write_script(self, story: Story) -> Script:
-        """Generate structured script from story.
+        """Generate structured script from story (LEGACY METHOD).
+
+        This is the OLD 2-agent workflow. Kept for backward compatibility.
+        New workflow should use SceneStructurer.generate_scaffold() then fill_scaffold().
 
         Args:
             story: Story to convert
@@ -378,7 +555,7 @@ Generate scenes with:
         Raises:
             ScriptGenerationError: If script generation fails
         """
-        logger.info(f"Generating script for story: {story.id}")
+        logger.info(f"Generating script for story: {story.id} (LEGACY 2-AGENT WORKFLOW)")
 
         try:
             # Build prompt
@@ -392,7 +569,7 @@ Generate scenes with:
             # Step 1: Generate Creative Draft (Unstructured)
             logger.info("Generating creative draft script (unstructured)...")
             start_time = datetime.now()
-            
+
             try:
                 response = await self.llm.ainvoke(messages)
             except Exception as inner_e:
@@ -400,7 +577,7 @@ Generate scenes with:
                 raise inner_e
 
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
-            
+
             # Log interaction
             try:
                 self.debugger.log_interaction(
