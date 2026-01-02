@@ -81,22 +81,22 @@ class SceneStructurerAgent:
    - `content_warnings`: [] (empty array)
 
 **Duration Calculation Rules:**
-- Total video duration: 60-150 seconds (target: 120s for 2-minute storytelling)
-- Scene duration: 3.0-6.0s (average 4.5s for detailed narration)
-- Number of scenes: 20-30 scenes total across 5 acts
-- Hook: 1-2 scenes (2-5s total)
-- Build: 3-5 scenes (10-20s total)
-- Crisis: 5-8 scenes (20-40s total)
-- Climax: 6-10 scenes (30-50s total)
-- Resolution: 3-5 scenes (10-20s total)
+- Total video duration: 60-150 seconds (target: 90s for 1.5-minute storytelling)
+- Scene duration: 4.0-6.0s (average 4.5s for detailed narration)
+- **CRITICAL**: Number of scenes: 18-22 scenes total across 5 acts (NO MORE THAN 22!)
+- Hook: 1-2 scenes (4-8s total)
+- Build: 3-4 scenes (12-18s total)
+- Crisis: 4-5 scenes (16-25s total)
+- Climax: 5-6 scenes (20-30s total)
+- Resolution: 3-4 scenes (12-18s total)
 
 **Scene Allocation Strategy:**
 Based on story complexity:
-- Simple story (< 500 words): 20 scenes
-- Medium story (500-1000 words): 25 scenes
-- Complex story (> 1000 words): 30 scenes
+- Simple story (< 500 words): 18 scenes
+- Medium story (500-1000 words): 20 scenes
+- Complex story (> 1000 words): 22 scenes
 
-Distribute scenes to match story pacing.
+**IMPORTANT**: Do NOT exceed 22 scenes total. Quality over quantity.
 
 **CRITICAL RULES:**
 1. DO NOT generate creative content (dialogue, visual descriptions)
@@ -224,8 +224,8 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
 1. Identify 2-5 main characters
 2. Create detailed character profiles
 3. Generate 5-act structure (hook, build, crisis, climax, resolution)
-4. Allocate 20-30 scenes across acts based on story length
-5. Calculate scene durations to total 60-150 seconds (target 120s)
+4. Allocate 18-22 scenes across acts (STRICT LIMIT: MAX 22 scenes)
+5. Calculate scene durations to total 60-150 seconds (target 90s)
 6. Assign characters to scenes
 7. Set placeholder emotions
 8. Leave ALL creative fields empty
@@ -317,12 +317,21 @@ Generate the complete script scaffold now.
                 f"Scaffold must have exactly 5 acts, got {len(scaffold.acts)}"
             )
 
-        # Validate scene count
+        # Validate scene count (STRICT)
         scene_count = scaffold.get_scene_count()
-        if not (20 <= scene_count <= 30):
-            logger.warning(
-                f"Scene count {scene_count} outside recommended range 20-30"
+        if not (18 <= scene_count <= 22):
+            raise ValueError(
+                f"Scene count {scene_count} outside STRICT range 18-22. "
+                f"Scaffold REJECTED. Please regenerate with fewer scenes."
             )
+        
+        # Check for empty acts
+        for act in scaffold.acts:
+            if len(act.scenes) == 0:
+                raise ValueError(
+                    f"Act {act.act_type.value} has NO scenes! "
+                    f"All acts must have at least 1 scene. Scaffold REJECTED."
+                )
 
         # Validate duration
         if not (60 <= scaffold.total_estimated_duration <= 150):
