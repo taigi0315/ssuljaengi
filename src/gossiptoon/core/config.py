@@ -413,3 +413,9 @@ class ConfigManager:
     def outputs_dir(self) -> Path:
         """Get base outputs directory (alias for app.output_dir for backward compatibility)."""
         return self.app.output_dir
+
+    @property
+    def root_dir(self) -> Path:
+        """Get project root directory."""
+        # src/gossiptoon/core/config.py -> parents[3] = project root
+        return Path(__file__).resolve().parents[3]
