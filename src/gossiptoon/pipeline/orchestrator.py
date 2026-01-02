@@ -441,11 +441,22 @@ class PipelineOrchestrator:
         from gossiptoon.audio.sfx_mapper import SFXMapper
         from gossiptoon.audio.sfx_mixer import AudioSFXMixer
 
+        # Group segments by scene_id first
+        from collections import defaultdict
+        segments_by_scene = defaultdict(list)
+        
+        for segment in audio_project.segments:
+            segments_by_scene[segment.scene_id].append(segment)
+        
         # Collect SFX to overlay
         sfx_list = []
         current_offset = 0.0
 
-        for scene, audio_segment in zip(script.get_all_scenes(), audio_project.segments):
+        for scene in script.get_all_scenes():
+            # Get ALL segments for this scene
+            scene_segments = segments_by_scene.get(scene.scene_id, [])
+            scene_duration = sum(s.duration_seconds for s in scene_segments)
+            
             # Check if scene has visual SFX
             if hasattr(scene, 'visual_sfx') and scene.visual_sfx:
                 # Map SFX keyword to audio file
@@ -467,8 +478,8 @@ class PipelineOrchestrator:
                     # It's purely visual text (comic style)
                     logger.debug(f"Scene {scene.scene_id} has Visual-only SFX: {scene.visual_sfx} (No audio mapped)")
             
-            # Accumulate offset for next scene
-            current_offset += audio_segment.duration_seconds
+            # Accumulate TOTAL scene duration (all chunks)
+            current_offset += scene_duration
         
         # Apply SFX overlays if any found
         if sfx_list:

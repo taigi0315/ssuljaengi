@@ -360,18 +360,23 @@ class VideoAssembler:
         current_time = 0.0
 
         for asset in visual_project.assets:
-            # Get matching audio segment
-            audio_segment = None
-            for seg in audio_project.segments:
-                if seg.scene_id == asset.scene_id:
-                    audio_segment = seg
-                    break
+            # Get ALL audio segments for this scene
+            scene_segments = [
+                seg for seg in audio_project.segments
+                if seg.scene_id == asset.scene_id
+            ]
 
-            if audio_segment is None:
-                logger.warning(f"No audio segment found for scene {asset.scene_id}, skipping")
+            if not scene_segments:
+                logger.warning(f"No audio segments found for scene {asset.scene_id}, skipping")
                 continue
 
-            duration = audio_segment.duration_seconds
+            # Sum ALL chunk durations for this scene
+            duration = sum(seg.duration_seconds for seg in scene_segments)
+            
+            logger.debug(
+                f"Timeline: {asset.scene_id} = {len(scene_segments)} chunks, "
+                f"duration = {duration:.2f}s"
+            )
 
             # Create timeline segment
             segment = TimelineSegment(
@@ -379,7 +384,7 @@ class VideoAssembler:
                 start_time=current_time,
                 end_time=current_time + duration,
                 visual_asset_path=asset.image_path,
-                audio_segment_path=audio_segment.file_path,
+                audio_segment_path=scene_segments[0].file_path,  # First chunk path (reference)
                 effects=[],  # Effects are applied globally via FFmpeg, not per-segment in this model
             )
 
@@ -394,22 +399,37 @@ class VideoAssembler:
         audio_project: AudioProject,
     ) -> float:
         """Get scene duration from audio project.
+        
+        IMPORTANT: A scene can have MULTIPLE audio chunks (dialogue, narration, etc).
+        We must sum ALL chunks for the scene to get the total duration.
 
         Args:
             scene_id: Scene identifier
             audio_project: Audio project
 
         Returns:
-            Duration in seconds
+            Duration in seconds (sum of all audio chunks for this scene)
         """
-        # Find matching audio segment
-        for segment in audio_project.segments:
-            if segment.scene_id == scene_id:
-                return segment.duration_seconds
-
-        # Fallback to default
-        logger.warning(f"No audio segment found for scene {scene_id}, using default duration")
-        return 5.0
+        # Find ALL matching audio segments for this scene
+        scene_segments = [
+            segment for segment in audio_project.segments
+            if segment.scene_id == scene_id
+        ]
+        
+        if not scene_segments:
+            logger.warning(f"No audio segment found for scene {scene_id}, using default duration")
+            return 5.0
+        
+        # Sum all segment durations for this scene
+        total_duration = sum(seg.duration_seconds for seg in scene_segments)
+        
+        if len(scene_segments) > 1:
+            logger.debug(
+                f"Scene {scene_id}: {len(scene_segments)} audio chunks, "
+                f"total duration = {total_duration:.2f}s"
+            )
+        
+        return total_duration
 
     @retry_with_backoff(max_retries=2, exceptions=(VideoAssemblyError,))
     async def _execute_ffmpeg(self, command: list[str]) -> None:

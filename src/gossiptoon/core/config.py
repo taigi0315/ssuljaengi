@@ -119,7 +119,7 @@ class AudioConfig(BaseModel):
     whisper_model: str = Field(default=DEFAULT_WHISPER_MODEL, description="Whisper model size")
 
     # Audio Dynamics
-    speed_factor: float = Field(default=1.1, description="Audio speedup factor (e.g., 1.1 = +10%)")
+    speed_factor: float = Field(default=1.0, description="Audio speed factor (1.0 = normal, 1.1 = +10%)")
     normalize_audio: bool = Field(default=True, description="Normalize audio volume")
 
     @field_validator("whisper_model")
