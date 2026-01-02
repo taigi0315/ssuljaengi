@@ -73,7 +73,7 @@ Each scene must have:
    - Choose from available SFX library:
      * TENSION: DOOM, DUN-DUN, LOOM, RUMBLE (shocking reveals, ominous moments)
      * ACTION: SQUEEZE, GRAB, GRIP, CLENCH, CRUSH (physical intensity)
-     * IMPACT: BAM!, BOOM!, WHAM!, THUD, TA-DA! (sudden events, victory)
+     * IMPACT: BAM!, WHAM!, THUD, TA-DA! (sudden events, victory)
    - Examples:
      - Crisis scene with betrayal reveal: "DUN-DUN"
      - Climax scene with confrontation: "BAM!"
