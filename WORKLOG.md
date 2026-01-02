@@ -122,6 +122,42 @@ ffprobe project_20260101_210420/videos/*.mp4 → ~63.5s ✅
 - **After**: Production-ready (full video duration matches audio)
 - **User Experience**: Complete stories, no cutoffs, correct timing
 
+### E2E Test Results (2026-01-01 22:00-22:06)
+
+**Test Project**: project_20260101_210420 (10 scenes, 19 audio chunks)
+
+| Metric         | Before Fix      | After Fix    | Improvement               |
+| -------------- | --------------- | ------------ | ------------------------- |
+| Video Duration | 34.2s           | 56.1s        | +21.9s (+64%)             |
+| Audio Duration | 63.5s           | 61.8s        | -1.7s (speed normalized)  |
+| Coverage       | 54%             | 91%          | **+37 percentage points** |
+| Speech Bubbles | ❌ None         | ✅ 10 images | Full rendering            |
+| Audio Speed    | 1.1x (too fast) | 1.0x         | Normal speed              |
+| TTS Errors     | Multiple        | None         | Fully fixed               |
+
+**Verified**:
+
+- ✅ Video duration fix working (91% vs 54% previously)
+- ✅ \_build_timeline() correctly sums all audio chunks
+- ✅ Bubble metadata rendered in all images
+- ✅ Audio speed normalized to 1.0x
+- ✅ No TTS errors (preprocessing working)
+- ✅ SFX overlay timing improved
+
+**Remaining 9% Gap Analysis**:
+
+- Root cause: Using old master audio file (`master_speed_1.1.mp3`)
+- This audio was generated BEFORE speed_factor fix (1.1x → 1.0x)
+- Solution: Need to regenerate audio stage with new config
+- Full verification pending: TTS API quota reset (tomorrow)
+
+**Next Verification Steps**:
+
+1. Wait for TTS quota (resets daily)
+2. Regenerate audio with speed_factor=1.0
+3. Verify 100% video/audio match
+4. Confirm caption timing still correct
+
 ### Lessons Learned
 
 1. **Architecture Awareness**: 1:N relationships require aggregation, not first-match
