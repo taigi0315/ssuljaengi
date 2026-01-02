@@ -47,3 +47,6 @@ dummy*.png
 audio.wav
 repro_*.mp4
 debug_*.log
+
+# Test Output
+tests/output/
