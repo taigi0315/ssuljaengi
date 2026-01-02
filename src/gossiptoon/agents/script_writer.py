@@ -57,7 +57,7 @@ Each scene must have:
    - bubble_position: "top-left", "top-right", "center", "bottom-left", "bottom-right"
    - bubble_style: "speech", "thought", "shout", "whisper"
 
-2. **panel_layout**: Korean webtoon panel description
+2. **panel_layout**: Webtoon panel description
    - Describe visual composition
    - Character positions and expressions
    - Dramatic lighting/shadows
@@ -149,14 +149,15 @@ Each scene must have:
 ```
 
 **IMPORTANT:**
-- Prioritize DIALOGUE over narration
-- Create realistic conversations
+- Use NARRATION to lead the story (60-70%)
+- Add DIALOGUE for key emotional moments (30-40%)
+- Narrator is the main character (first-person POV, Reddit style)
 - Use director_notes to add emotional depth
 - Assign bubble positions to avoid overlap
 - Maintain webtoon aesthetic (vibrant, expressive, dramatic)
 """
 
-    USER_PROMPT_TEMPLATE = """Convert this Reddit story into a Korean Webtoon-style YouTube Short:
+    USER_PROMPT_TEMPLATE = """Convert this Reddit story into a Webtoon-style YouTube Short:
 
 **Story Title:** {title}
 
@@ -166,12 +167,13 @@ Each scene must have:
 **Story Category:** {category}
 
 **Instructions:**
-1. **Identify 2-5 main characters** from the story (give them names if not provided)
+1. **Identify 2-5 main characters with ENGLISH names** (e.g., Jake, Emma, Sarah)
+   - Give them English names if not provided in the story
 2. **Assign realistic genders** to each character based on context (male/female)
-3. **Transform narration into CHARACTER DIALOGUE** whenever possible
-   - Use conversations instead of descriptions
-   - Create confrontations and emotional exchanges
-   - Show, don't tell through dialogue
+3. **Use NARRATION to lead the story (60-70%)**
+   - Main character narrates in first-person (like original Reddit post)
+   - Narrator guides the story progression
+   - Add DIALOGUE for key emotional moments (30-40%)
 4. **Structure into exactly 5 acts** following the webtoon style
 5. **For each scene, create audio_chunks:**
    - Start with narration chunk for scene-setting (if needed)
@@ -186,7 +188,7 @@ Each scene must have:
 7. **Specify bubble positions** for dialogue to avoid overlap:
    - Use: top-left, top-right, center, bottom-left, bottom-right
    - Vary positions for visual interest
-8. **Create panel_layout** descriptions in Korean webtoon style:
+8. **Create panel_layout** descriptions in webtoon style:
    - Describe character positions and expressions
    - Include dramatic lighting/shadows
    - Specify camera angles
@@ -195,7 +197,7 @@ Each scene must have:
 **Output Format:**
 Generate scenes with this structure:
 - audio_chunks: List of AudioChunk objects (narration/dialogue/internal)
-- panel_layout: Korean webtoon panel description
+- panel_layout: Webtoon panel description
 - bubble_metadata: List of BubbleMetadata objects matching dialogue
 - visual_description: Vivid scene description for image generation
 - characters_present: List of character names in this scene
@@ -205,8 +207,8 @@ Generate scenes with this structure:
 {format_instructions}
 
 **Remember:** 
-- Prioritize DIALOGUE over narration
-- Make conversations feel natural and engaging
+- NARRATION leads the story (60-70%), dialogue highlights emotions (30-40%)
+- Main character narrates like the original Reddit post
 - Use director_notes to add emotional depth
 - Create a visually dynamic webtoon experience!"""
 
