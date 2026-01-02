@@ -53,22 +53,35 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
      * bubble_position: "top-left", "top-right", "center", "bottom-left", "bottom-right"
      * bubble_style: "speech", "thought", "shout", "whisper"
    - bubble_metadata must match dialogue chunks
-   - panel_layout must describe Korean webtoon visual composition
+   - panel_layout must capture ONE KEY MOMENT for instant 3s readability
+   - REJECT complex multi-action descriptions ("He walks in, sits down, and cries")
+   - ACCEPT snapshot moments ("Close-up of him wiping a tear")
+   - Focus on facial expressions and dramatic angles
+   - Keep descriptions under 30 words
 
 3. **Enum Correction**: Map descriptions to strict Enums:
    * **ALLOWED EMOTIONS**: {valid_emotions}
    * **ALLOWED CAMERA EFFECTS**: {valid_effects}
    * **CRITICAL**: Map close values (e.g., "mad" -> `angry`, "zoom" -> `zoom_in`)
 
-4. **Timing & Pacing:**
-   - Total duration: 50-60s
-   - Adjust `estimated_duration_seconds` based on audio_chunks or narration length
-   - Approx 2.5 words/sec for TTS
+4. **Timing & Pacing (FAST MODE - Optimized for Shorts):**
+   - Total duration: 30-45s (STRICT - reject if exceeds 50s)
+   - **Per-scene duration limits**:
+     * MIN: 2.0s (scenes shorter than this feel rushed)
+     * MAX: 4.0s (scenes longer than this hurt retention)
+     * TARGET: 3.0s average
+   - Adjust `estimated_duration_seconds` based on audio_chunks
+   - Approx 2.5-3.0 words/sec for TTS
+   - **ENFORCE**: Reduce scene duration if audio chunks are too long
 
 5. **Structure Enforcement:**
    - Exactly 5 Acts: Hook, Setup, Crisis, Climax, Resolution
-   - Hook: 0.5-3s
-   - Climax: 10-15s
+   - **Updated Act Durations**:
+     * Hook: 0.5-2s (instant grab)
+     * Setup: 2-4s (quick intro)
+     * Crisis: 3-4s (conflict)
+     * Climax: 3-4s (peak)
+     * Resolution: 2-3s (wrap-up)
 
 6. **Character Consistency:**
    - Maintain consistent speaker_id across scenes

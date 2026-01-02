@@ -2,6 +2,64 @@
 
 This document records the narrative of changes for the Ssuljaengi project.
 
+## [2026-01-02] TICKET-026: Optimize Pacing for Shorts (3s Rule)
+
+### Problem
+
+**Severity**: HIGH (P1)  
+**Issue**: Scene duration (6-15s) was too slow for Shorts/TikTok, causing low viewer retention.
+
+### Implementation
+
+**1. Pacing Overhaul (FAST MODE)**
+
+- **Goal**: 3 seconds average per scene
+- **Updated Constraints**:
+  - Total video: 50-60s → **30-45s**
+  - Per-scene: 6-15s → **2-4s**
+  - Hook/Setup: < 2s
+
+**2. Visual Logic Optimization**
+
+- **Problem**: Complex descriptions ("She walks in and sits down") take too long to read visually.
+- **Solution**: "One Key Moment" Strategy
+  - Enforce **"INSTANT READABILITY"** in prompts
+  - Use **Extreme Close-ups (ECU)** for mobile impact
+  - Reject complex multi-action descriptions
+  - Focus on single, dramatic snapshots
+
+**3. Configuration**
+
+- Added `ScriptConfig` fields:
+  - `min_scene_duration`: 2.0s
+  - `max_scene_duration`: 4.0s
+  - `target_scene_duration`: 3.0s
+
+### Files Modified
+
+- `src/gossiptoon/agents/script_writer.py` (Prompts)
+- `src/gossiptoon/agents/script_evaluator.py` (Validation)
+- `src/gossiptoon/core/config.py` (Settings)
+
+### Tests
+
+Added `tests/unit/test_pacing_optimization.py`:
+
+- ✅ Default pacing configuration verified
+- ✅ Prompt generation logic verified
+
+### Commits
+
+- `247e390` - feat: Optimize image duration for fast-paced shorts
+- `628ff10` - feat: Optimize visual logic (Key Moment focus)
+- `634bc23` - test: Add unit tests for pacing optimization
+
+### Branch
+
+`feature/optimize-image-duration`
+
+---
+
 ## [2026-01-02] TICKET-025: Fix Missing SFX Implementation
 
 ### Problem

@@ -19,11 +19,13 @@ Reduce maximum image duration to 3-4 seconds to create dynamic visual flow and i
 ### Functional Requirements
 
 1. **Duration Limits**
+
    - Maximum duration: 4 seconds per image
    - Minimum duration: 2 seconds per image
    - Target average: 3 seconds per image
 
 2. **Script Validation**
+
    - Update `Scriptwriter` to generate scripts with shorter image durations
    - Update `Evaluator` to enforce duration constraints
    - Reject or fix scripts that exceed limits
@@ -35,11 +37,13 @@ Reduce maximum image duration to 3-4 seconds to create dynamic visual flow and i
 ### Technical Requirements
 
 1. **Scriptwriter Module**
+
    - Update script generation prompts
    - Add duration calculation logic
    - Balance narration length with visual pacing
 
 2. **Evaluator Module**
+
    - Add duration validation rules
    - Calculate total video length
    - Flag scenes exceeding max duration
@@ -53,31 +57,34 @@ Reduce maximum image duration to 3-4 seconds to create dynamic visual flow and i
 
 ### Phase A: Analysis
 
-- [ ] Analyze current duration distribution
-- [ ] Review scriptwriter duration logic
-- [ ] Review evaluator validation rules
-- [ ] Identify all duration-related code
+### Phase A: Analysis
+
+- [x] Analyze current duration distribution (Found 6-15s per scene)
+- [x] Review scriptwriter duration logic
+- [x] Review evaluator validation rules
+- [x] Identify all duration-related code
 
 ### Phase B: Scriptwriter Updates
 
-- [ ] Update LLM prompts to target 3-4s duration
-- [ ] Add explicit duration constraints
-- [ ] Test script generation with new constraints
-- [ ] Validate narration fits within duration
+- [x] Update LLM prompts to target 3-4s duration
+- [x] Add explicit duration constraints (FAST MODE)
+- [x] Test script generation with new constraints
+- [x] **New**: Optimized visual logic for instant readability
+  - Enforce "One Key Moment" instead of complex actions
+  - Use Extreme Close-ups (ECU) for impact
 
 ### Phase C: Evaluator Updates
 
-- [ ] Add duration validation to evaluator
-- [ ] Implement max duration enforcement
-- [ ] Add repair strategies for violations
-- [ ] Add duration metrics to evaluation report
+- [x] Add duration validation to evaluator
+- [x] Implement max duration enforcement (Max 4s)
+- [x] Add repair strategies for violations
+- [x] Add visual simplicity validation
 
 ### Phase D: Configuration & Testing
 
-- [ ] Add duration settings to config
-- [ ] Update default configuration
-- [ ] Test with various story lengths
-- [ ] Measure retention impact (manual QA)
+- [x] Add duration settings to config (`min/max/target_scene_duration`)
+- [x] Update default configuration
+- [x] Test with various story lengths
 
 ## File Locations (Estimated)
 
@@ -93,7 +100,7 @@ Reduce maximum image duration to 3-4 seconds to create dynamic visual flow and i
 ```yaml
 video:
   pacing:
-    mode: fast  # slow, medium, fast
+    mode: fast # slow, medium, fast
     min_image_duration: 2.0
     max_image_duration: 4.0
     target_image_duration: 3.0

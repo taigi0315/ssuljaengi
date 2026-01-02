@@ -159,6 +159,10 @@ class ScriptConfig(BaseModel):
     max_dialogue_chars: int = Field(
         default=100, description="Maximum characters for dialogue chunks"
     )
+    # Pacing Configuration (Shorts Optimized)
+    min_scene_duration: float = Field(default=2.0, description="Minimum duration per scene in seconds")
+    max_scene_duration: float = Field(default=4.0, description="Maximum duration per scene in seconds")
+    target_scene_duration: float = Field(default=3.0, description="Target average duration per scene")
 
     # Legacy narration limits
     min_narration_chars: int = Field(default=10, description="Minimum characters for narration")
