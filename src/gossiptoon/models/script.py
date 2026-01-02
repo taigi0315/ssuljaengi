@@ -16,6 +16,21 @@ from gossiptoon.core.constants import (
 from gossiptoon.models.audio import AudioChunk, BubbleMetadata
 
 
+
+class CharacterProfile(BaseModel):
+    """Detailed character design profile for consistent image generation."""
+    
+    name: str = Field(..., description="Character Name")
+    age: str = Field(..., description="Age (e.g., '20s', '45')")
+    gender: str = Field(..., description="Gender")
+    role: str = Field(..., description="Role in story (Protagonist, Antagonist, etc.)")
+    personality_vibe: str = Field(..., description="Vibe/Personality (e.g., 'Gloomy', 'Bubby', 'Strict')")
+    body_type: str = Field(..., description="Body Build (e.g., 'Slim', 'Muscular', 'Chubby')")
+    hair_style_color: str = Field(..., description="Hair style and color")
+    face_details_expression: str = Field(..., description="Facial features and default expression")
+    outfit: str = Field(..., description="Detailed outfit description")
+
+
 class Scene(BaseModel):
     """A single scene within an act.
 
@@ -292,6 +307,12 @@ class Script(BaseModel):
     )
     target_audience: str = Field(default="general", description="Target audience")
     content_warnings: list[str] = Field(default_factory=list, description="Content warnings if any")
+    
+    # New: Detailed character profiles
+    character_profiles: list[CharacterProfile] = Field(
+        default_factory=list, 
+        description="Detailed character design profiles for consistent generation"
+    )
 
     @field_validator("acts")
     @classmethod
