@@ -298,16 +298,68 @@ class GoogleTTSClient(TTSClient):
 
             # Validate response
             if not response or not response.candidates:
-                raise AudioGenerationError(
-                    f"Empty response from Google TTS API. Text: '{text[:50]}...'"
+                logger.warning(
+                    f"Empty response from Google TTS API (attempt 1). Text: '{text[:50]}...'. "
+                    f"Retrying once more..."
                 )
+                # Special retry for None response (1 additional attempt)
+                import asyncio
+                await asyncio.sleep(2.0)  # Brief pause
+                
+                response = client.models.generate_content(
+                    model=self.model,
+                    contents=styled_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        speech_config=types.SpeechConfig(
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
+                            )
+                        ),
+                    ),
+                )
+                
+                # Check again after retry
+                if not response or not response.candidates:
+                    raise AudioGenerationError(
+                        f"Empty response from Google TTS API after retry. Text: '{text[:50]}...'"
+                    )
             
             candidate = response.candidates[0]
             if not candidate.content or not candidate.content.parts:
-                raise AudioGenerationError(
-                    f"No audio content in response. Text: '{text[:50]}...', "
-                    f"Response: {response}"
+                logger.warning(
+                    f"No audio content in response (attempt 1). Text: '{text[:50]}...'. "
+                    f"Retrying once more..."
                 )
+                # Special retry for None content (1 additional attempt)
+                import asyncio
+                await asyncio.sleep(2.0)  # Brief pause
+                
+                response = client.models.generate_content(
+                    model=self.model,
+                    contents=styled_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        speech_config=types.SpeechConfig(
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice_name)
+                            )
+                        ),
+                    ),
+                )
+                
+                # Check again after retry
+                if not response or not response.candidates:
+                    raise AudioGenerationError(
+                        f"Empty response from Google TTS API after content retry. Text: '{text[:50]}...'"
+                    )
+                
+                candidate = response.candidates[0]
+                if not candidate.content or not candidate.content.parts:
+                    raise AudioGenerationError(
+                        f"No audio content in response after retry. Text: '{text[:50]}...', "
+                        f"Response: {response}"
+                    )
 
             # Extract audio data (PCM format)
             audio_data = candidate.content.parts[0].inline_data.data
