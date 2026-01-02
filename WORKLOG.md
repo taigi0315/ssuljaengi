@@ -2,6 +2,49 @@
 
 This document records the narrative of changes for the Ssuljaengi project.
 
+## [2026-01-02] TICKET-028: Standardized Character Sheets
+
+### Problem
+
+**Severity**: Medium (P2)
+**Issue**: Character designs were inconsistent or generated ad-hoc from scene descriptions ("Two people fighting in kitchen"), leading to poor character consistency and low quality.
+**Goal**: Generate standardized, detailed character design sheets for all main characters (Name, Age, Features, Outfit) before generating scenes.
+
+### Implementation
+
+**1. Schema Update (`Script` Model)**
+
+- Added `CharacterProfile` class (Name, Age, Gender, Role, Personality, Build, Hair, Face, Outfit)
+- Added `character_profiles` list field to `Script` model
+
+**2. Prompt Engineering (`ScriptWriterAgent`)**
+
+- Updated System Prompt to enforce **"Character Design Standards"**
+- LLM must define 2-5 character profiles BEFORE writing acts
+- Updated Output Example Schema to include `character_profiles`
+
+**3. Visual Logic Update (`VisualDirector/Director`)**
+
+- Implemented `CHARACTER_SHEET_TEMPLATE` (Standardized prompt)
+- `_generate_character_portraits` now checks for structured `character_profiles`
+- Generates high-quality, isolated character sheets using:
+  - `{age} year old {gender}`
+  - `{vibe} vibe, {body_type} build`
+  - `{outfit} on white background`
+
+### Tests
+
+- Added `tests/unit/test_character_standardization.py`:
+  - ✅ `Script` model validation for profiles
+  - ✅ `ScriptWriter` system prompt checks
+  - ✅ `VisualDirector` prompt template application
+
+### Branch
+
+`feature/standardize-character-sheets`
+
+---
+
 ## [2026-01-02] TICKET-027: Refine & Diversify Visual Effects
 
 ### Problem
