@@ -56,7 +56,7 @@ class Scene(BaseModel):
     # NEW: Webtoon panel description
     panel_layout: Optional[str] = Field(
         None,
-        min_length=20,
+        min_length=1,
         description="Visual scene description in Korean webtoon panel style",
     )
 
@@ -306,7 +306,7 @@ class Script(BaseModel):
 
     script_id: str = Field(..., description="Unique script identifier")
     story_id: str = Field(..., description="Reference to source story")
-    title: str = Field(..., min_length=10, max_length=100, description="Script title")
+    title: str = Field(..., min_length=10, max_length=300, description="Script title")
     acts: list[Act] = Field(min_length=5, max_length=5, description="Five acts")
     total_estimated_duration: float = Field(
         ge=MIN_SCRIPT_DURATION,
