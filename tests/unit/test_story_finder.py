@@ -15,6 +15,15 @@ def mock_config():
     config.api.reddit_client_secret = "fake_secret"
     config.api.reddit_user_agent = "fake_agent"
     config.api.tavily_api_key = "fake_tavily"
+    
+    # NEW: Mock Reddit Config
+    config.reddit.subreddits = ["sub1", "sub2"]
+    config.reddit.time_filter = "month"
+    config.reddit.min_upvotes = 500
+    config.reddit.min_comments = 50
+    config.reddit.min_chars = 300
+    config.reddit.max_chars = 1000
+    
     config.stories_dir = MagicMock()
     return config
 
@@ -52,10 +61,10 @@ async def test_find_story_by_url(mock_config):
 
 @pytest.mark.asyncio
 async def test_find_story_search(mock_config):
-    """Test searching for viral stories."""
+    """Test searching for viral stories with config."""
     agent = StoryFinderAgent(mock_config)
     
-    mock_posts = [MagicMock()] # Only needed to verify count passed to filter
+    mock_posts = [MagicMock()] 
     agent.reddit_tool.search_multiple_subreddits = AsyncMock(return_value=mock_posts)
     
     selected_post = RedditPost(
@@ -79,7 +88,23 @@ async def test_find_story_search(mock_config):
     
     assert story.title == "My wife left me and it is a very sad story indeed"
     assert story.viral_score == 98.0
-    agent.reddit_tool.search_multiple_subreddits.assert_called_once()
+    
+    # Verify search params from COMPLETED CONFIG
+    agent.reddit_tool.search_multiple_subreddits.assert_called_once_with(
+        subreddits=["sub1", "sub2"],
+        time_filter="month",
+        limit_per_subreddit=15
+    )
+    
+    # Verify filter params from CONFIG
+    agent.reddit_tool.filter_suitable_posts.assert_called_once_with(
+        mock_posts,
+        min_upvotes=500,
+        min_comments=50,
+        min_length=300,
+        max_length=1000,
+        min_virality=80.0
+    )
 
 
 @pytest.mark.asyncio
