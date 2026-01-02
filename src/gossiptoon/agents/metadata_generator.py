@@ -40,7 +40,9 @@ Generate 1 Title, 1 Description, and a list of Tags optimized for the YouTube al
 
 # RULES FOR DESCRIPTION
 - Start with a 1-2 sentence "Hook Summary" of the story.
-- Include a "Credit" line: "Story from r/{subreddit}"
+- Include a "Credit" line with EXACT format:
+  "📖 Original Story: {source_url}"
+  "💬 Read the full discussion and updates on Reddit!"
 - Include viral hashtags at the bottom: #shorts #redditstories #aita #reddit
 - Tone: Engaging and mysterious.
 
@@ -125,6 +127,7 @@ Generate:
             formatted_prompt = await prompt.ainvoke({
                 "story_title": story.title,
                 "subreddit": story.metadata.subreddit if story.metadata else "reddit",
+                "source_url": story.metadata.url if story.metadata else "N/A",
                 "story_content_preview": story.content[:1000], # First 1000 chars context
                 "hook_content": hook_text
             })

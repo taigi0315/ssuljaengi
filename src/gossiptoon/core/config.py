@@ -151,6 +151,35 @@ class ImageConfig(BaseModel):
     )
 
 
+class RedditConfig(BaseModel):
+    """Reddit scraper configuration."""
+
+    subreddits: list[str] = Field(
+        default=[
+            "AmItheAsshole",
+            "relationship_advice",
+            "EntitledParents",
+            "JUSTNOMIL",
+            "pettyrevenge",
+            "ProRevenge",
+            "TrueOffMyChest",
+            "tifu",
+            "confessions"
+        ],
+        description="List of subreddits to crawl",
+    )
+    min_upvotes: int = Field(default=1000, description="Minimum upvotes to consider")
+    min_comments: int = Field(default=100, description="Minimum comments to consider")
+    time_filter: str = Field(default="week", description="Reddit time filter (day, week, month)")
+    
+    # Story Length Filtering (Target: 1-2 mins Video)
+    # Approx 150-300 words. 
+    # Avg 5 chars/word -> 750 - 1500 chars (broaden to 500 - 3000)
+    min_chars: int = Field(default=500, description="Minimum character count")
+    max_chars: int = Field(default=3000, description="Maximum character count")
+
+
+
 class ScriptConfig(BaseModel):
     """Script generation configuration."""
 
@@ -261,6 +290,15 @@ class ConfigManager:
                     "IMAGE_NEGATIVE_PROMPT",
                     "text, watermark, blurry, low quality, distorted, speech bubbles, jagged lines, messy sketch",
                 ),
+            )
+
+            self.reddit = RedditConfig(
+                subreddits=os.getenv("REDDIT_SUBREDDITS", "AmItheAsshole,relationship_advice,EntitledParents,JUSTNOMIL,pettyrevenge,ProRevenge,TrueOffMyChest,tifu,confessions").split(","),
+                min_upvotes=int(os.getenv("REDDIT_MIN_UPVOTES", "1000")),
+                min_comments=int(os.getenv("REDDIT_MIN_COMMENTS", "100")),
+                time_filter=os.getenv("REDDIT_TIME_FILTER", "week"),
+                min_chars=int(os.getenv("REDDIT_MIN_CHARS", "500")),
+                max_chars=int(os.getenv("REDDIT_MAX_CHARS", "3000")),
             )
 
             self.script = ScriptConfig(

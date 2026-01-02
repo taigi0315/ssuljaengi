@@ -100,7 +100,8 @@ class StoryFinderAgent:
 
         # Search Reddit
         reddit_posts = await self.reddit_tool.search_multiple_subreddits(
-            time_filter=time_filter,
+            subreddits=self.config.reddit.subreddits,
+            time_filter=self.config.reddit.time_filter,
             limit_per_subreddit=15,
         )
 
@@ -109,10 +110,10 @@ class StoryFinderAgent:
         # Filter for suitable posts
         suitable_posts = self.reddit_tool.filter_suitable_posts(
             reddit_posts,
-            min_upvotes=1000,
-            min_comments=50,
-            min_length=150,
-            max_length=2000,
+            min_upvotes=self.config.reddit.min_upvotes,
+            min_comments=self.config.reddit.min_comments,
+            min_length=self.config.reddit.min_chars,
+            max_length=self.config.reddit.max_chars,
             min_virality=min_virality,
         )
 
