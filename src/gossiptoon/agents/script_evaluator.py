@@ -318,7 +318,17 @@ Apply QA fixes and return the polished script.
         )
         
         logger.info(f"Script validation complete: {validated_script.get_scene_count()} scenes")
-        return validated_script
+        
+        # NEW: Perform coherence check
+        coherence_result = await self._check_story_coherence(validated_script, story)
+        
+        # Return ValidationResult with both QA and coherence info
+        from gossiptoon.models.script import ValidationResult
+        return ValidationResult(
+            script=validated_script,
+            is_coherent=coherence_result.is_coherent,
+            issues=coherence_result.issues
+        )
 
     async def _validate_single_act(self, act: Act, story: Story) -> Act:
         """Validate a single act.
