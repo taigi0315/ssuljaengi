@@ -124,10 +124,6 @@ class GeminiImageClient(ImageClient):
             from google.genai import types
 
             logger.info(f"Generating image with Gemini 2.5 Flash Image")
-            logger.debug(f"Prompt: {prompt.base_prompt[:100]}...")
-
-            # Build full prompt
-            full_prompt = prompt.build_full_prompt()
             
             # Create client with API key
             client = genai.Client(api_key=self.api_key)
