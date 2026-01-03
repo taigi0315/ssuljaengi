@@ -263,37 +263,26 @@ STRICTLY SINGLE CHARACTER. NO background elements, NO other people."""
             and scene.panel_template != PanelTemplateType.SINGLE
             and scene.panel_descriptions
         ):
-            logger.info(f"Generating multi-panel layout: {scene.panel_template}")
-            panel_images = []
-
-            # Generate each panel
-            for idx, desc in enumerate(scene.panel_descriptions):
-                logger.info(f"Generating panel {idx+1}/{len(scene.panel_descriptions)}")
-
-                panel_prompt = self._build_prompt(
-                    base_description=desc,
-                    scene=scene,
-                    character_bank=character_bank,
-                    is_panel=True,
-                    panel_index=idx,
-                )
-
-                if idx == 0:
-                    prompt_used = panel_prompt  # Store first prompt for metadata
-
-                output_path = self.config.images_dir / f"{scene.scene_id}_panel_{idx}.png"
-
-                p_path = await self.image_client.generate_image(
-                    prompt=panel_prompt,
-                    output_path=output_path,
-                )
-                panel_images.append(p_path)
-
-            # Stitch panels
-            logger.info("Stitching panels...")
-            image_path = self._stitch_panels(
-                panel_images, scene.panel_template, self.config.images_dir / f"{scene.scene_id}.png"
+            logger.info(f"Generating COMPOSITE multi-panel layout: {scene.panel_template}")
+            
+            # TICKET-042: Generate single composite image instead of multiple panels
+            # This reduces API costs by ~66% (3 calls → 1 call)
+            composite_prompt = self._build_composite_panel_prompt(
+                panel_descriptions=scene.panel_descriptions,
+                panel_template=scene.panel_template,
+                scene=scene,
+                character_bank=character_bank,
             )
+            
+            prompt_used = composite_prompt
+            output_path = self.config.images_dir / f"{scene.scene_id}.png"
+            
+            image_path = await self.image_client.generate_image(
+                prompt=composite_prompt,
+                output_path=output_path,
+            )
+            
+            logger.info(f"✅ Composite panel generated: {image_path}")
 
         else:
             # Standard Single Image Generation (Legacy + Single Template)
@@ -552,3 +541,62 @@ CHARACTER CONSISTENCY REQUIREMENTS:
                 return visual_project
 
         raise ImageGenerationError(f"Scene {scene_id} not found in visual project")
+
+    def _build_composite_panel_prompt(
+        self,
+        panel_descriptions: list[str],
+        panel_template: 'PanelTemplateType',
+        scene: any,
+        character_bank: CharacterConsistencyBank,
+    ) -> str:
+        """Build prompt for composite multi-panel image generation.
+        
+        Args:
+            panel_descriptions: List of descriptions for each panel
+            panel_template: Panel template type (template_a_3panel, template_b_4panel)
+            scene: Scene object
+            character_bank: Character consistency bank
+            
+        Returns:
+            Composite prompt string
+        """
+        from gossiptoon.models.panel import PanelTemplateType
+        
+        # Determine layout instruction
+        layout_instructions = {
+            PanelTemplateType.TEMPLATE_A_3PANEL: "Vertical layout with 3 panels stacked top to bottom, separated by thin black borders",
+            PanelTemplateType.TEMPLATE_B_4PANEL: "2x2 grid layout with 4 panels, separated by thin black borders",
+        }
+        
+        layout = layout_instructions.get(panel_template, "Multi-panel vertical layout")
+        panel_count = len(panel_descriptions)
+        
+        # Build panel-by-panel descriptions
+        panel_prompts = []
+        for idx, desc in enumerate(panel_descriptions):
+            panel_prompts.append(f"Panel {idx + 1}: {desc}")
+        
+        panels_text = "\n".join(panel_prompts)
+        
+        # Get character descriptions
+        char_desc_parts = []
+        for char_name in scene.characters_present:
+            char_info = character_bank.get_character(char_name)
+            if char_info:
+                char_desc_parts.append(f"{char_name}: {char_info['description']}")
+        
+        char_context = " | ".join(char_desc_parts) if char_desc_parts else ""
+        
+        # Build composite prompt
+        composite_prompt = f"""Create a {panel_count}-panel Korean webtoon comic layout in vertical 9:16 format (1080x1920):
+
+{layout}
+
+{panels_text}
+
+Style: Cinematic Korean manhwa, dramatic lighting, expressive faces, clear panel divisions with thin black borders.
+{f"Characters: {char_context}" if char_context else ""}
+
+IMPORTANT: Generate a SINGLE composite image with all panels arranged as specified. Do NOT generate separate images."""
+        
+        return composite_prompt
