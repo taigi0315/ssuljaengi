@@ -420,27 +420,6 @@ class PipelineOrchestrator:
                 try:
                     # Step 1: Generate Structure
                     logger.info("Step 1: Generating script structure...")
-                    scaffold = await self.scene_structurer.generate_scaffold(story)
-                    logger.info(f"Scaffold generated: {scaffold.get_scene_count()} scenes")
-
-                    # Step 2: Fill Creative Content
-                    logger.info("Step 2: Filling creative content...")
-                    filled_script = await self.script_writer.fill_scaffold(story, scaffold)
-                    
-                    if filled_script is None:
-                        raise GossipToonException("❌ CRITICAL: fill_scaffold returned None!")
-                    
-                    logger.info(f"Script filled: {filled_script.get_scene_count()} scenes")
-
-                    # Step 3: Validate & Coherence Check
-                    logger.info("Step 3: Validating script (QA + coherence check)...")
-                    validation_result = await self.script_evaluator.validate_script(filled_script, story)
-                    
-                    if validation_result is None:
-                        raise GossipToonException("❌ CRITICAL: validate_script returned None!")
-                    
-                    # Check coherence
-                    if validation_result.is_coherent:
                         logger.info(f"✅ Script passed coherence check (attempt {attempt})")
                         final_validation_result = validation_result
                         break  # Success!
