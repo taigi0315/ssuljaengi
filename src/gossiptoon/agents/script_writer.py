@@ -626,6 +626,8 @@ Category: {category}
 4. Maintain character consistency
 5. Keep audio chunks under {max_chars} characters
 
+**CRITICAL**: Do NOT repeat events or dialogue from previous acts. Progress the story forward with NEW content.
+
 Generate the COMPLETE act with all creative content filled in.
 Return ONLY this act as a valid Act JSON object.
 """,

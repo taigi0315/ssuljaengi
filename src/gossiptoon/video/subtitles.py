@@ -189,9 +189,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
         events = []
         from gossiptoon.video.text_analyzer import TextAnalyzer, TextStyle
 
+        # Minimum display duration for readability (seconds)
+        MIN_WORD_DURATION = 0.8
+
         for ts in segment.timestamps:
-            start_str = format_timestamp_ass(ts.start + offset)
-            end_str = format_timestamp_ass(ts.end + offset)
+            start_time = ts.start + offset
+            end_time = ts.end + offset
+            
+            # Ensure minimum display duration
+            duration = end_time - start_time
+            if duration < MIN_WORD_DURATION:
+                end_time = start_time + MIN_WORD_DURATION
+            
+            start_str = format_timestamp_ass(start_time)
+            end_str = format_timestamp_ass(end_time)
 
             # Analyze word for style
             style = TextAnalyzer.analyze_word(ts.word)
@@ -212,7 +223,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
                 # as High Impact provides the "pop".
                 tags += r"\c&H00FFFFFF&"
 
-            text = f"{{{tags}}}{ts.word}"
+            # FIX: Use single braces for ASS format (not triple braces which escape to double)
+            text = "{" + tags + "}" + ts.word
 
             events.append(
                 f"Dialogue: 0,{start_str},{end_str},RapidWord,,0,0,0,,{text}"
