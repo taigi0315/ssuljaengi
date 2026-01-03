@@ -241,11 +241,11 @@ class AudioGenerator:
                 output_path=output_path,
             )
 
-        # RATE LIMITING: Google TTS has 10 RPM limit (6 seconds per request)
-        # Add delay to prevent 429 RESOURCE_EXHAUSTED errors
+        # RATE LIMITING: Google TTS has 10 RPM limit (6 seconds per request minimum)
+        # Using 8 seconds for safer margin to prevent 429 RESOURCE_EXHAUSTED errors
         import asyncio
-        logger.info("⏱️ Rate limiting: waiting 6s before next TTS request...")
-        await asyncio.sleep(6)
+        logger.info("⏱️ Rate limiting: waiting 8s before next TTS request...")
+        await asyncio.sleep(8)
 
         # Get actual audio duration
         duration = self.processor.get_audio_duration(audio_path)
