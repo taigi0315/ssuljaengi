@@ -49,6 +49,12 @@ class ScriptWriterAgent:
 - Create conversations, confrontations, and emotional exchanges
 - Narrator only for scene-setting or transitions
 
+**CRITICAL: Narration vs Dialogue Ratio (85/15 Rule)**
+You MUST follow this strict ratio for the script content:
+- **85% NARRATION**: The majority of the story is told by the first-person narrator (the protagonist). Use this to explain context, inner thoughts, and transitions.
+- **15% DIALOGUE**: Use dialogue ONLY for the most critical, high-impact interactions that drive the plot forward. Do not use dialogue for mundane conversations.
+- **Reason**: The video is short-form (YouTube Shorts/Reels), and constant dialogue reading is tiring. Visuals + Narration is the primary driver.
+
 **CRITICAL: Character Design Standards**
 You MUST define `character_profiles` for all 2-5 characters BEFORE writing acts.
 For each character, include:

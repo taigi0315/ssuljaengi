@@ -597,6 +597,8 @@ CHARACTER CONSISTENCY REQUIREMENTS:
 Style: Cinematic Korean manhwa, dramatic lighting, expressive faces, clear panel divisions with thin black borders.
 {f"Characters: {char_context}" if char_context else ""}
 
-IMPORTANT: Generate a SINGLE composite image with all panels arranged as specified. Do NOT generate separate images."""
+IMPORTANT: Generate a SINGLE composite image with all panels arranged as specified. Do NOT generate separate images.
+CRITICAL: Do NOT include any Korean text/Hangul in the image. Any text MUST be in English.
+"""
         
         return composite_prompt
