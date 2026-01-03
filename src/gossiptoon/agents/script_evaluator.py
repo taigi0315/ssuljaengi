@@ -209,8 +209,9 @@ Apply QA fixes and return the polished script.
         ])
 
         try:
-            # For large scripts (>20 scenes), validate act-by-act to avoid LLM output size limits
-            if script.get_scene_count() > 20:
+            # For large scripts (>15 scenes), validate act-by-act to avoid LLM output size limits
+            # Lowered from 20 to 15 to handle moderately large scripts more reliably
+            if script.get_scene_count() > 15:
                 logger.info(f"Large script detected ({script.get_scene_count()} scenes), using act-by-act validation")
                 return await self._validate_script_by_acts(script, story)
             
@@ -224,7 +225,30 @@ Apply QA fixes and return the polished script.
             })
 
             start_time = datetime.now()
-            validated_script = await self.structured_llm.ainvoke(formatted_prompt)
+
+            # Retry logic for LLM validation (max 3 attempts)
+            validated_script = None
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    validated_script = await self.structured_llm.ainvoke(formatted_prompt)
+
+                    if validated_script is not None:
+                        break  # Success!
+                    else:
+                        logger.warning(f"⚠️ Script validation returned None (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            import asyncio
+                            await asyncio.sleep(2)  # Wait 2 seconds before retry
+                except Exception as retry_error:
+                    logger.warning(f"Script validation attempt {attempt + 1} failed: {retry_error}")
+                    if attempt < max_retries - 1:
+                        import asyncio
+                        await asyncio.sleep(2)
+
+            if validated_script is None:
+                raise Exception(f"Script validation failed after {max_retries} attempts - LLM returned None")
+
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
 
             self.debugger.log_interaction(
@@ -235,7 +259,7 @@ Apply QA fixes and return the polished script.
                 duration_ms=duration_ms
             )
 
-            logger.info(f"Script validated: {validated_script.get_scene_count()} scenes")
+            logger.info(f"✅ Script validated: {validated_script.get_scene_count()} scenes")
             return validated_script
 
         except Exception as e:

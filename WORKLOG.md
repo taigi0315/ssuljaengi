@@ -783,9 +783,145 @@ ffprobe project_20260101_210420/videos/*.mp4 → ~63.5s ✅
 - **Fix**: Changed `generator.py` line 14 to import `EmotionTone` directly from `gossiptoon.core.constants`, breaking the circular dependency.
 - **Verification**:
   - ✅ Import test successful, `EmotionTone.NEUTRAL` accessible
-  - ✅ Full E2E pipeline run successful on first execution (project_20260101_155619)
-  - ✅ Generated 15.1s video with 19 audio segments, 5 scenes, 4 characters
-  - ✅ All features working: chunk-level audio, engagement overlays, hybrid subtitles, Ken Burns effects
+  - ✅ Full E2E pipeline run successful - **Verification**: Successful E2E run (project_20260101_155619) - 15.1s video, 19 audio segments, 5 scenes, 4 characters.
+  - **Status**: VERIFIED - All features working (chunk-level audio, engagement overlays, hybrid subtitles, Ken Burns effects).
+
+---
+
+## [2026-01-02] Script Generation Pipeline Robustness
+
+### Problem
+
+**Severity**: HIGH (P1) - Pipeline Blocker  
+**Issue**: Script generation failing with `'NoneType' object has no attribute 'get_scene_count'` and LLM returning None for large scripts.
+
+**Root Causes**:
+
+1. LLM output token limits causing None returns for large multi-act scripts
+2. Scene count validation too strict (18-22 scenes) causing scaffold generation failures
+3. No retry logic for intermittent LLM failures
+4. SceneStructurer generating scaffolds outside acceptable range
+
+### Implementation
+
+**1. Act-by-Act Batch Processing**
+
+- **ScriptWriter** (`src/gossiptoon/agents/script_writer.py`):
+
+  - Refactored `fill_scaffold()` to process acts individually instead of entire script
+  - Added `_fill_single_act()` method for individual Act processing
+  - Prevents LLM from exceeding output token limits
+  - Each act processed separately with its own LLM call
+
+- **ScriptEvaluator** (`src/gossiptoon/agents/script_evaluator.py`):
+  - Implemented `_validate_script_by_acts()` for large scripts (>20 scenes)
+  - Added `_validate_single_act()` for individual Act validation
+  - Mirrors batch processing approach from ScriptWriter
+
+**2. Retry Logic Implementation**
+
+- **ScriptWriter** (`src/gossiptoon/agents/script_writer.py:656-695`):
+
+  - Added retry loop (max 3 attempts, 2s delay) to `_fill_single_act()`
+  - Detailed logging with emoji markers (✅❌⚠️) for debugging
+  - Raises `ScriptGenerationError` after all retries exhausted
+
+- **ScriptEvaluator** (`src/gossiptoon/agents/script_evaluator.py:350-373`):
+
+  - Added retry loop (max 3 attempts, 1s delay) to `_validate_single_act()`
+  - None check after each attempt with warning logs
+  - Explicit error on final failure
+
+- **SceneStructurer** (`src/gossiptoon/agents/scene_structurer.py:251-318`):
+  - Added retry loop (max 3 attempts, 2s delay) for scaffold generation
+  - Validates scaffold after each attempt
+  - Retries on validation failure (scene count, empty acts)
+
+**3. Scene Range Flexibility**
+
+- **Validation Range** (`src/gossiptoon/agents/scene_structurer.py:321-327`):
+
+  - Expanded from 18-22 scenes to **10-30 scenes**
+  - Allows LLM more flexibility while maintaining quality
+  - Prevents unnecessary scaffold rejections
+
+- **Prompt Updates** (`src/gossiptoon/agents/scene_structurer.py:83-98`):
+  - Updated duration calculation rules for 10-30 scene range
+  - Adjusted scene allocation strategy by story complexity:
+    - Simple (< 500 words): 10-15 scenes
+    - Medium (500-1000 words): 16-22 scenes
+    - Complex (> 1000 words): 23-30 scenes
+
+**4. Enhanced Logging**
+
+- **Orchestrator** (`src/gossiptoon/pipeline/orchestrator.py:432-445`):
+
+  - Added 📝 emoji markers for tracking None returns
+  - Explicit None checks after `validate_script()` call
+  - Detailed type logging for debugging
+
+- **ScriptEvaluator** (`src/gossiptoon/agents/script_evaluator.py:257-275`):
+  - Added per-act validation logging
+  - None checks with critical error messages
+  - Success markers (✅) for completed acts
+
+### Configuration Changes
+
+- **LLM Models** (`src/gossiptoon/core/config.py:360-368`):
+
+  - Centralized LLM configuration in `LLMConfig` class
+  - All agents use `gemini-2.0-flash-exp` (gemini-1.5-pro not supported in v1beta API)
+  - Environment variable support for model configuration
+
+- **Pydantic Models** (`src/gossiptoon/models/script.py:236`):
+  - Increased `Act.scenes` max_length from 10 to **20**
+  - Extended duration limits from 20.0s to **60.0s** for flexibility
+
+### Testing Results
+
+**Successful Scaffold Generation**:
+
+- ✅ project_20260102_155325: 22 scenes, 90.0s duration
+- ✅ Act 1 (hook, 2 scenes) completed
+- ✅ Act 2 (build, 5 scenes) completed
+- ⏸️ Act 3 (crisis) processing interrupted
+
+**Validation Improvements**:
+
+- ✅ Retry logic prevents immediate failures
+- ✅ Detailed logging identifies exact failure points
+- ✅ Flexible scene range reduces scaffold rejections
+
+### Files Modified
+
+| File                                        | Changes                             |
+| ------------------------------------------- | ----------------------------------- |
+| `src/gossiptoon/agents/script_writer.py`    | Act-by-act filling + retry logic    |
+| `src/gossiptoon/agents/script_evaluator.py` | Act-by-act validation + retry logic |
+| `src/gossiptoon/agents/scene_structurer.py` | Scaffold retry + 10-30 scene range  |
+| `src/gossiptoon/pipeline/orchestrator.py`   | Enhanced None tracking              |
+| `src/gossiptoon/core/config.py`             | LLMConfig centralization            |
+| `src/gossiptoon/models/script.py`           | Increased Act.scenes max_length     |
+| `.env`                                      | LLM model configuration             |
+
+### Known Issues
+
+- **Intermittent LLM Failures**: Even with retry logic, LLM occasionally returns None after 3 attempts
+- **Model Limitations**: gemini-1.5-pro-002 not available in v1beta API
+- **Incomplete Pipeline**: Full end-to-end video generation not yet verified
+
+### Next Steps
+
+1. Resume successful run: `gossiptoon resume project_20260102_155325`
+2. Verify complete script generation with all 5 acts
+3. Test full pipeline to video output
+4. Monitor retry success rates
+5. Consider additional retry strategies if needed
+
+### Status
+
+**In Progress** - Core retry logic implemented and tested. Awaiting full pipeline verification.
+
 - **Status**: VERIFIED - Pipeline runs successfully from start to finish without errors.
 
 ## [2026-01-01] TICKET-024: Code Cleanup & E2E Debugging (Verified)

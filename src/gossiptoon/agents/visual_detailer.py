@@ -110,14 +110,36 @@ Return the COMPLETE validated JSON Script object.
             logger.info("Calling Visual Detailer (LLM)...")
             start_time = datetime.now()
 
-            # Use structured output to ensure we get a valid Script back
-            enriched_script = await self.llm.with_structured_output(Script).ainvoke(
-                prompt.format_messages(
-                    title=story.title,
-                    content_summary=content_summary,
-                    script_json=script_json,
-                )
-            )
+            # Retry logic for LLM enrichment (max 3 attempts)
+            enriched_script = None
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    # Use structured output to ensure we get a valid Script back
+                    enriched_script = await self.llm.with_structured_output(Script).ainvoke(
+                        prompt.format_messages(
+                            title=story.title,
+                            content_summary=content_summary,
+                            script_json=script_json,
+                        )
+                    )
+
+                    if enriched_script is not None:
+                        break  # Success!
+                    else:
+                        logger.warning(f"⚠️ Visual enrichment returned None (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            import asyncio
+                            await asyncio.sleep(2)  # Wait 2 seconds before retry
+                except Exception as retry_error:
+                    logger.warning(f"Visual enrichment attempt {attempt + 1} failed: {retry_error}")
+                    if attempt < max_retries - 1:
+                        import asyncio
+                        await asyncio.sleep(2)
+
+            if enriched_script is None:
+                logger.error(f"Visual enrichment failed after {max_retries} attempts - falling back to original script")
+                enriched_script = script  # Fallback to original script
 
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
 
