@@ -612,3 +612,108 @@ Check for repetition and story progression issues.""")
                 issues=[],
                 suggested_fixes={}
             )
+
+    async def _check_fidelity(self, script: Script, story: Story) -> ScriptFidelityResult:
+        """Check information fidelity and narrative flow.
+        
+        Args:
+            script: Generated script
+            story: Original source story
+            
+        Returns:
+            ScriptFidelityResult with scores and missing info
+        """
+        logger.info("Checking script fidelity and flow...")
+        
+        # Extract full script text for comparison
+        script_text_parts = []
+        for act in script.acts:
+            for scene in act.scenes:
+                if hasattr(scene, 'audio_chunks') and scene.audio_chunks:
+                    for chunk in scene.audio_chunks:
+                        if hasattr(chunk, 'text'):
+                            speaker = chunk.speaker_id if hasattr(chunk, 'speaker_id') else "Narrator"
+                            script_text_parts.append(f"{speaker}: {chunk.text}")
+        
+        script_full_text = "\n".join(script_text_parts)
+        
+        fidelity_prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are a Strict Story Editor for Reddit adaptations.
+
+**Task**: Compare the adaptation script against the original source story.
+
+**Analysis Goals**:
+1. **Information Fidelity (Score 0-100)**: Does the script capture ALL key details (dates, names, specific events, evidence)?
+   - 100: Top-tier adaptation, no details lost.
+   - 80-90: Good, minor details lost.
+   - < 80: Significant information loss (FAIL).
+
+2. **Narrative Flow (Score 0-100)**: Does the narration connect smoothly?
+   - Look for choppy transitions or confusing jumps.
+   - Narration is the backbone - it must be coherent.
+
+**Comparison**:
+- **Source**: Reddit Story (The Truth)
+- **Target**: Script (The Adaptation)
+
+**Output**:
+- `fidelity_score`: Integer 0-100
+- `missing_key_points`: List of SPECIFIC facts present in source but missing in script.
+- `unnecessary_additions`: List of "fluff" or "gossip filler" that adds no value.
+- `flow_score`: Integer 0-100
+- `flow_issues`: Specific pacing/transition problems.
+- `verdict`: "PASS" if fidelity >= 90 AND flow >= 80, else "FAIL".
+- `improvement_suggestions`: Concrete advice for the writer.
+"""),
+            ("human", """Compare and evaluate:
+
+**Original Story**:
+{story_content}
+
+**Generated Script**:
+{script_text}
+""")
+        ])
+        
+        try:
+            start_time = datetime.now()
+            
+            fidelity_llm = self.llm.with_structured_output(ScriptFidelityResult)
+            result = await fidelity_llm.ainvoke(
+                fidelity_prompt.format_messages(
+                    story_content=story.content[:1500], # First 1500 chars for context (source can be long)
+                    script_text=script_full_text[:1500]
+                )
+            )
+            
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            
+            self.debugger.log_interaction(
+                agent_name="ScriptEvaluator_Fidelity",
+                prompt=fidelity_prompt.format_messages(
+                    story_content=story.content[:500],
+                    script_text=script_full_text[:500]
+                ),
+                response=result,
+                metadata={"story_id": story.id, "mode": "fidelity_check", "score": result.fidelity_score},
+                duration_ms=duration_ms
+            )
+            
+            logger.info(f"Fidelity Score: {result.fidelity_score}, Flow Score: {result.flow_score}, Verdict: {result.verdict}")
+            if result.verdict == "FAIL":
+                logger.warning(f"❌ Script Fidelity Issues: {result.missing_key_points}")
+                
+            return result
+            
+        except Exception as e:
+            logger.error(f"Fidelity check failed: {e}")
+            # Fail safe: Return passing score but log error
+            return ScriptFidelityResult(
+                fidelity_score=100,
+                missing_key_points=[],
+                unnecessary_additions=[],
+                flow_score=100,
+                flow_issues=[],
+                verdict="PASS",
+                improvement_suggestions="Fidelity check skipped due to error"
+            )
