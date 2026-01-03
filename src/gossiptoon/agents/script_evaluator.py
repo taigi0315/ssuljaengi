@@ -12,9 +12,25 @@ from gossiptoon.models.story import Story
 from gossiptoon.models.script import Script, Scene, Act, ActType, EmotionTone, CameraEffectType
 from gossiptoon.utils.llm_debugger import LLMDebugger
 from datetime import datetime
+from pydantic import BaseModel, Field
 
-logger = logging.getLogger(__name__)
+class ScriptFidelityResult(BaseModel):
+    """Result of script information fidelity check."""
+    fidelity_score: int = Field(..., description="Score 0-100 indicating how well script preserves original story info")
+    missing_key_points: list[str] = Field(..., description="List of key plot points or details missing from the script")
+    unnecessary_additions: list[str] = Field(..., description="List of unnecessary filler content (e.g., empty dialogue)")
+    flow_score: int = Field(..., description="Score 0-100 for narrative flow and pacing")
+    flow_issues: list[str] = Field(..., description="List of awkward transitions or pacing issues")
+    verdict: str = Field(..., description="'PASS' if fidelity_score >= 90 else 'FAIL'")
+    improvement_suggestions: str = Field(..., description="Specific instructions on how to fix the script")
 
+class ValidationResult(BaseModel):
+    """Result of script validation process."""
+    script: Optional[Script] = Field(None, description="Validated script if successful")
+    is_valid: bool = Field(False, description="Whether validation passed")
+    coherence: Optional['CoherenceResult'] = Field(None, description="Story coherence check result")
+    fidelity: Optional[ScriptFidelityResult] = Field(None, description="Script fidelity check result")
+    error_message: Optional[str] = Field(None, description="Error message if failed")
 
 class ScriptEvaluator:
     """Agent responsible for validating, formatting, and polishing the script."""
