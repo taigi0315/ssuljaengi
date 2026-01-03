@@ -77,13 +77,13 @@ class TextAnalyzer:
         if style == TextStyle.HIGH_IMPACT:
             # Bold, Larger, Yellow/Red/Magenta (Randomized handled by caller or fixed)
             # For now returning base formatting, caller adds color
-            return r"{\b1\fs150%}" # Bold, 1.5x size
+            return r"\b1\fs150" # Bold, 1.5x size (removed %)
         
         elif style == TextStyle.EMPHASIS:
             # Bold, slightly larger
-            return r"{\b1\fs120%}"
+            return r"\b1\fs120"
             
-        return r"{\b0}" # Normal weight
+        return r"\b0" # Normal weight
 
     @staticmethod
     def get_high_impact_color() -> str:

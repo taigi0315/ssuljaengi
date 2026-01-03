@@ -209,9 +209,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
             else:
                 # Normal words in rapid mode: standard color (White) or Pastel?
                 # Ticket says "Normal Subtitles... White text with black outline"
-                # But rapid mode usually used pastel. Let's stick to White for readability now,
-                # as High Impact provides the "pop".
-                tags += r"\c&H00FFFFFF&"
+                # User feedback: "white doesn't work... maybe white doesn't need any?"
+                # Rely on default style (Style: RapidWord) which should be defined as white
+                pass
 
             # FIX: Use single braces for ASS format (not triple braces which escape to double)
             text = "{" + tags + "}" + ts.word

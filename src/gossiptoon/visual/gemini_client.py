@@ -134,7 +134,8 @@ class GeminiImageClient(ImageClient):
 Visual description: {full_prompt}
 
 Style: Cinematic digital art, dramatic lighting, 8k quality.
-Do not include any text or watermarks."""
+Style: Cinematic digital art, dramatic lighting, 8k quality.
+CRITICAL: Do not include any Korean text or Hangul characters. If any text appears, it MUST be in English. No watermarks."""
 
             # Use Gemini 2.5 Flash Image (correct model name)
             response = client.models.generate_content(
