@@ -404,3 +404,22 @@ class Script(BaseModel):
         """Pydantic config."""
 
         pass
+
+
+class CoherenceResult(BaseModel):
+    """Result of story coherence check by ScriptEvaluator."""
+    
+    is_coherent: bool = Field(..., description="Whether the script has good story progression")
+    issues: list[str] = Field(default_factory=list, description="List of coherence issues found")
+    suggested_fixes: dict[str, str] = Field(
+        default_factory=dict, 
+        description="Suggested fixes for each problematic act (act_type -> suggestion)"
+    )
+
+
+class ValidationResult(BaseModel):
+    """Result of script validation including both QA and coherence checks."""
+    
+    script: Script = Field(..., description="Validated script")
+    is_coherent: bool = Field(..., description="Whether story progression is coherent")
+    issues: list[str] = Field(default_factory=list, description="List of issues found")
