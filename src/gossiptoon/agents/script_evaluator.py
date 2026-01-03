@@ -157,113 +157,85 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
         # Assumes scripts_dir is outputs/{job_id}/scripts
         self.debugger = LLMDebugger(self.config.scripts_dir.parent)
 
-    async def validate_script(self, script: Script, story: Story) -> Script:
-        """Validate and polish a complete script (NEW 3-AGENT WORKFLOW).
-
-        This method is for the new workflow where structure is already guaranteed.
-        It performs QA-only: validates enums, normalizes text, checks constraints.
-
-        Args:
-            script: Complete script from ScriptWriter
-            story: Original story for context
+    async def validate_script(self, script: Script, story: Story) -> ValidationResult:
+        """Validate and polish a complete script with deep checks (QA, Coherence, Fidelity).
 
         Returns:
-            Validated and polished script
-
-        Raises:
-            Exception: If validation fails critically
+            ValidationResult containing polished script and check results.
         """
-        logger.info("Validating complete script (QA-only)...")
+        logger.info("Validating complete script (QA + Coherence + Fidelity)...")
+        
+        validated_script = None
 
-        simplified_prompt = """You are a QA Editor for Korean Webtoon YouTube Shorts.
-
-**CRITICAL: The script structure is ALREADY CORRECT. Only validate and polish.**
-
-**Your QA Checklist:**
-
-1. **Enum Validation**: Fix any invalid enum values
-   - emotion: excited, shocked, sympathetic, dramatic, angry, happy, sad, neutral, suspenseful, sarcastic, frustrated, determined, relieved, exasperated
-   - camera_effect: ken_burns, fade_transition, caption, zoom_in, zoom_out, pan_left, pan_right, pan_up, pan_down, shake, shake_slow, shake_fast, static, loom
-
-2. **Text Normalization**:
-   - Remove parentheticals from audio chunk text (move to director_notes)
-   - Normalize numbers: $1M → $1 million, 5K → 5 thousand
-   - Clean TTS-incompatible characters
-
-3. **Constraint Checks**:
-   - Audio chunk text: MAX 100 characters (warn if exceeded)
-   - Visual SFX: MAX 5 per video (remove excess)
-   - Shake effects: Duration MUST be <= 2.0s
-
-4. **Character Consistency**:
-   - Verify speaker_id matches character_profiles
-   - Check speaker_gender consistency
-
-**DO NOT:**
-- Change structure (scene_id, order, durations)
-- **CRITICAL**: Remove `target_duration_seconds` from Acts (Must be preserved)
-- Modify character_profiles
-- Add/remove scenes or acts
-- Rewrite creative content
-
-**Output:**
-Return the script with minor QA fixes applied. Preserve all structure and creative content.
-"""
-
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", simplified_prompt),
-            ("human", """Validate and polish this script:
-
-**Original Story (for context):**
-{story_title}
-
-**Script (JSON):**
-{script_json}
-
-Apply QA fixes and return the polished script.
-""")
-        ])
-
+        # --- Step 1: Format Validation & QA Polish ---
         try:
-            # For large scripts (>15 scenes), validate act-by-act to avoid LLM output size limits
-            # Lowered from 20 to 15 to handle moderately large scripts more reliably
+            # For large scripts (>15 scenes), validate act-by-act
             if script.get_scene_count() > 15:
                 logger.info(f"Large script detected ({script.get_scene_count()} scenes), using act-by-act validation")
-                return await self._validate_script_by_acts(script, story)
-            
-            # For smaller scripts, validate all at once
-            import json
-            script_json = json.dumps(script.model_dump(mode="json"), indent=2)
+                # Note: _validate_script_by_acts needs to be updated to return ValidationResult too?
+                # For now, let's assume it returns Script and we wrap it, OR we update it later.
+                # Assuming it returns Script for now to minimize diff for this step.
+                validated_script = await self._validate_script_by_acts(script, story)
+            else:
+                # Small script: Validate all at once
+                import json
+                script_json = json.dumps(script.model_dump(mode="json"), indent=2)
 
-            formatted_prompt = await prompt.ainvoke({
-                "story_title": story.title,
-                "script_json": script_json
-            })
-
-            start_time = datetime.now()
-
-            # Retry logic for LLM validation (max 3 attempts)
-            validated_script = None
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    validated_script = await self.structured_llm.ainvoke(formatted_prompt)
-
-                    if validated_script is not None:
-                        break  # Success!
-                    else:
-                        logger.warning(f"⚠️ Script validation returned None (attempt {attempt + 1}/{max_retries})")
-                        if attempt < max_retries - 1:
+                qa_prompt = ChatPromptTemplate.from_messages([
+                    ("system", """You are a QA Editor for Korean Webtoon YouTube Shorts.
+CRITICAL: The script structure is ALREADY CORRECT. Only validate and polish.
+1. Fix invalid Enums (emotion, camera_effect).
+2. Normalize numbers ($1M -> $1 million).
+3. Check constraints (text length < 100 chars).
+4. Verify character consistency.
+DO NOT change structure or creative content."""),
+                    ("human", f"Validate and polish this script:\n\n**Original Story**:\n{story.title}\n\n**Script (JSON)**:\n{{script_json}}")
+                ])
+                
+                formatted_prompt = await qa_prompt.ainvoke({"script_json": script_json})
+                
+                # Retry logic
+                for attempt in range(3):
+                    try:
+                        validated_script = await self.structured_llm.ainvoke(formatted_prompt)
+                        if validated_script: break
+                    except Exception as e:
+                        logger.warning(f"QA Validation attempt {attempt+1} failed: {e}")
+                        if attempt < 2: 
                             import asyncio
-                            await asyncio.sleep(2)  # Wait 2 seconds before retry
-                except Exception as retry_error:
-                    logger.warning(f"Script validation attempt {attempt + 1} failed: {retry_error}")
-                    if attempt < max_retries - 1:
-                        import asyncio
-                        await asyncio.sleep(2)
+                            await asyncio.sleep(2)
+        
+        except Exception as e:
+            return ValidationResult(is_valid=False, error_message=f"QA Validation Failed: {str(e)}")
 
-            if validated_script is None:
-                raise Exception(f"Script validation failed after {max_retries} attempts - LLM returned None")
+        if not validated_script:
+            return ValidationResult(is_valid=False, error_message="QA Validation returned None")
+
+        # --- Step 2: Coherence Check ---
+        coherence_result = await self._check_story_coherence(validated_script, story)
+        
+        # --- Step 3: Fidelity Check ---
+        fidelity_result = await self._check_fidelity(validated_script, story)
+        
+        # --- Step 4: Determine Final Validity ---
+        is_valid = True
+        error_messages = []
+        
+        if not coherence_result.is_coherent:
+            is_valid = False
+            error_messages.append(f"Coherence Issue: {coherence_result.issues}")
+            
+        if fidelity_result.verdict == "FAIL":
+            is_valid = False
+            error_messages.append(f"Fidelity Issue (Score {fidelity_result.fidelity_score}): {fidelity_result.missing_key_points}")
+            
+        return ValidationResult(
+            script=validated_script,
+            is_valid=is_valid,
+            coherence=coherence_result,
+            fidelity=fidelity_result,
+            error_message="; ".join(error_messages) if error_messages else None
+        )
 
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
 
