@@ -407,19 +407,7 @@ class PipelineOrchestrator:
             Script object
         """
         if self.use_new_workflow:
-            logger.info("Using NEW 3-agent workflow (Structure-First)")
-
-            # Step 1: Generate scaffold (structure only)
-            logger.info("Step 1/3: Generating script scaffold...")
-            scaffold = await self.scene_structurer.generate_scaffold(story)
-            logger.info(
-                f"Scaffold complete: {scaffold.get_scene_count()} scenes, "
-                f"{len(scaffold.character_profiles)} characters, "
-                f"{scaffold.total_estimated_duration}s"
-            )
-
-        if self.config.workflow.use_3_agent_workflow:
-            # NEW 3-AGENT WORKFLOW with FEEDBACK LOOP
+            # NEW 3-AGENT WORKFLOW with FEEDBACK LOOP (TICKET-041)
             logger.info("Using NEW 3-agent workflow (with coherence check)")
             
             # FEEDBACK LOOP: Retry script generation if coherence check fails
