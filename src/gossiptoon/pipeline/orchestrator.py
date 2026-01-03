@@ -418,11 +418,46 @@ class PipelineOrchestrator:
                 logger.info(f"📝 Script generation attempt {attempt}/{max_attempts}")
                 
                 try:
+                try:
                     # Step 1: Generate Structure
                     logger.info("Step 1: Generating script structure...")
-                        logger.info(f"✅ Script passed coherence check (attempt {attempt})")
+                    scaffold = await self.scene_structurer.generate_scaffold(story)
+                    if not scaffold:
+                         raise GossipToonException("Failed to generate scaffold")
+                    logger.info(f"Scaffold generated: {scaffold.get_scene_count()} scenes")
+
+                    # Step 2: Fill Creative Content
+                    logger.info("Step 2: Filling creative content...")
+                    filled_script = await self.script_writer.fill_scaffold(story, scaffold)
+                    
+                    if filled_script is None:
+                        raise GossipToonException("❌ CRITICAL: fill_scaffold returned None!")
+                    
+                    logger.info(f"Script filled: {filled_script.get_scene_count()} scenes")
+
+                    # Step 3: Validate & Coherence/Fidelity Check
+                    logger.info("Step 3: Validating script (QA + Coherence + Fidelity)...")
+                    validation_result = await self.script_evaluator.validate_script(filled_script, story)
+                    
+                    if validation_result is None:
+                        raise GossipToonException("❌ CRITICAL: validate_script returned None!")
+                    
+                    # Check validity
+                    if validation_result.is_valid:
+                        logger.info(f"✅ Script passed all checks (attempt {attempt})")
                         final_validation_result = validation_result
                         break  # Success!
+                    else:
+                        # Validation failed
+                        logger.warning(f"❌ Script rejected (attempt {attempt}/{max_attempts}): {validation_result.error_message}")
+                        
+                        # Log specific issues
+                        if validation_result.fidelity and validation_result.fidelity.verdict == "FAIL":
+                             logger.error(f"Fidelity Issues: {validation_result.fidelity.missing_key_points}")
+
+                        # If this was the last attempt, use the best result we have (or this result)
+                        # but flag it as failed.
+                        final_validation_result = validation_result
                     else:
                         # Coherence check failed
                         logger.warning(f"❌ Script rejected - coherence issues (attempt {attempt}/{max_attempts})")
