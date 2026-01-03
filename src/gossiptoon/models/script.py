@@ -83,7 +83,7 @@ class Scene(BaseModel):
         default_factory=list, description="Character names in this scene"
     )
     estimated_duration_seconds: float = Field(
-        ge=0.5, le=20.0, description="Estimated scene duration (relaxed max for BUILD/CRISIS acts)"
+        ge=0.5, le=60.0, description="Estimated scene duration (extended for detailed storytelling)"
     )
     camera_effect: Optional[CameraEffectType] = Field(
         default=None, description="Recommended camera movement/effect for this scene"
@@ -233,8 +233,8 @@ class Act(BaseModel):
     """Represents one act in the five-act structure."""
 
     act_type: ActType = Field(..., description="Type of act")
-    scenes: list[Scene] = Field(min_length=1, max_length=5, description="Scenes in this act")
-    target_duration_seconds: float = Field(ge=1.0, le=20.0, description="Target act duration")
+    scenes: list[Scene] = Field(min_length=1, max_length=20, description="Scenes in this act (extended for longer storytelling)")
+    target_duration_seconds: float = Field(ge=1.0, le=60.0, description="Target act duration (extended for 2-minute videos)")
 
     @field_validator("scenes")
     @classmethod

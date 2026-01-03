@@ -44,11 +44,11 @@ class SceneStructurerAgent:
      * outfit: Detailed clothing description
 
 2. **5-Act Structure** (EXACT ORDER):
-   - Act 1: HOOK (target: 0.5-2s) - HIGH INTENSITY (shock/drama)
-   - Act 2: BUILD (target: 2-4s)
-   - Act 3: CRISIS (target: 3-4s)
-   - Act 4: CLIMAX (target: 3-4s)
-   - Act 5: RESOLUTION (target: 2-3s)
+   - Act 1: HOOK (target: 2-5s) - HIGH INTENSITY (shock/drama)
+   - Act 2: BUILD (target: 10-20s) - Character development and context
+   - Act 3: CRISIS (target: 20-40s) - Extended escalation
+   - Act 4: CLIMAX (target: 30-50s) - Peak drama with full impact
+   - Act 5: RESOLUTION (target: 10-20s) - Satisfying conclusion
 
    For each act:
    - `act_type`: Correct enum value (hook, build, crisis, climax, resolution)
@@ -76,27 +76,27 @@ class SceneStructurerAgent:
    - `script_id`: Generate unique ID (format: "script_YYYYMMDD_HHMMSS_random")
    - `story_id`: Copy from input story
    - `title`: Extract from story title
-   - `total_estimated_duration`: Sum of all scene durations (MUST be 40-58s)
+   - `total_estimated_duration`: Sum of all scene durations (MUST be 60-150s, target 120s)
    - `target_audience`: "general"
    - `content_warnings`: [] (empty array)
 
 **Duration Calculation Rules:**
-- Total video duration: 40-58 seconds (target: 50s)
-- Scene duration: 2.0-4.0s (average 3.0s)
-- Number of scenes: 12-15 scenes total across 5 acts
-- Hook: 1 scene (2s)
-- Build: 2-3 scenes (6-9s total)
-- Crisis: 3-4 scenes (9-12s total)
-- Climax: 3-4 scenes (9-12s total)
-- Resolution: 2-3 scenes (6-9s total)
+- Total video duration: 60-150 seconds (target: 90s for 1.5-minute storytelling)
+- Scene duration: 4.0-6.0s (average 4.5s for detailed narration)
+- **Number of scenes: 10-30 scenes total across 5 acts**
+- Hook: 1-2 scenes (4-8s total)
+- Build: 2-6 scenes (8-30s total)
+- Crisis: 3-8 scenes (12-40s total)
+- Climax: 3-10 scenes (12-50s total)
+- Resolution: 2-6 scenes (8-30s total)
 
 **Scene Allocation Strategy:**
 Based on story complexity:
-- Simple story (< 500 words): 12 scenes
-- Medium story (500-1000 words): 14 scenes
-- Complex story (> 1000 words): 15 scenes
+- Simple story (< 500 words): 10-15 scenes
+- Medium story (500-1000 words): 16-22 scenes
+- Complex story (> 1000 words): 23-30 scenes
 
-Distribute scenes to match story pacing.
+**LLM has flexibility** - focus on story flow and pacing.
 
 **CRITICAL RULES:**
 1. DO NOT generate creative content (dialogue, visual descriptions)
@@ -183,8 +183,8 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
 
         # Low temperature for deterministic structural output
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
-            temperature=0.1,  # Very low for consistent structure
+            model=config.llm.scene_structurer_model,
+            temperature=config.llm.scene_structurer_temperature,
             google_api_key=config.api.google_api_key,
             safety_settings=safety_settings,
         )
@@ -200,7 +200,7 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
         # Log initialization
         key = config.api.google_api_key
         masked_key = f"{key[:4]}...{key[-4:]}" if key and len(key) > 8 else "INVALID"
-        logger.info(f"Initialized SceneStructurer with model=gemini-2.0-flash-exp, temp=0.1, key={masked_key}")
+        logger.info(f"Initialized SceneStructurer with model={config.llm.scene_structurer_model}, temp={config.llm.scene_structurer_temperature}, key={masked_key}")
 
     def _create_prompt(self) -> ChatPromptTemplate:
         """Create prompt template for structure generation.
@@ -224,8 +224,8 @@ Generate a complete script scaffold with perfect structure, ready for ScriptWrit
 1. Identify 2-5 main characters
 2. Create detailed character profiles
 3. Generate 5-act structure (hook, build, crisis, climax, resolution)
-4. Allocate 12-15 scenes across acts based on story length
-5. Calculate scene durations to total 40-58 seconds
+4. Allocate 10-30 scenes across acts based on story complexity
+5. Calculate scene durations to total 60-150 seconds (target 90s)
 6. Assign characters to scenes
 7. Set placeholder emotions
 8. Leave ALL creative fields empty
@@ -250,35 +250,73 @@ Generate the complete script scaffold now.
         logger.info(f"Generating script scaffold for story: {story.id}")
 
         try:
-            # Build prompt
-            messages = self.prompt.format_messages(
-                title=story.title,
-                content=story.content,
-                category=story.category.value,
-            )
+            # Retry logic for scaffold generation (max 3 attempts)
+            scaffold = None
+            max_retries = 3
+            
+            for attempt in range(max_retries):
+                logger.info(f"Scaffold generation attempt {attempt + 1}/{max_retries}...")
+                
+                try:
+                    # Build prompt
+                    messages = self.prompt.format_messages(
+                        title=story.title,
+                        content=story.content,
+                        category=story.category.value,
+                    )
 
-            # Generate scaffold
-            logger.info("Calling LLM to generate structure scaffold...")
-            start_time = datetime.now()
+                    # Call LLM
+                    logger.info("Calling LLM to generate structure scaffold...")
+                    start_time = datetime.now()
 
-            scaffold = await self.structured_llm.ainvoke(messages)
+                    scaffold = await self.structured_llm.ainvoke(messages)
 
-            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+                    if scaffold is None:
+                        logger.warning(f"⚠️ LLM returned None (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            import asyncio
+                            await asyncio.sleep(2)
+                        continue
 
-            # Log interaction
-            try:
-                self.debugger.log_interaction(
-                    agent_name="SceneStructurer",
-                    prompt=messages,
-                    response=scaffold,
-                    metadata={"story_id": story.id},
-                    duration_ms=duration_ms
+                    duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+
+                    # Log interaction
+                    try:
+                        self.debugger.log_interaction(
+                            agent_name="SceneStructurer",
+                            prompt=messages,
+                            response=scaffold,
+                            metadata={"story_id": story.id},
+                            duration_ms=duration_ms
+                        )
+                    except Exception as log_e:
+                        logger.warning(f"Failed to log interaction: {log_e}")
+
+                    # Validate scaffold
+                    try:
+                        self._validate_scaffold(scaffold, story)
+                        logger.info(f"✅ Scaffold validation passed on attempt {attempt + 1}")
+                        break  # Success!
+                    except ValueError as val_error:
+                        logger.warning(
+                            f"⚠️ Scaffold validation failed (attempt {attempt + 1}/{max_retries}): {val_error}"
+                        )
+                        if attempt < max_retries - 1:
+                            logger.info("Retrying scaffold generation...")
+                            import asyncio
+                            await asyncio.sleep(2)
+                        scaffold = None  # Reset for retry
+                        
+                except Exception as gen_error:
+                    logger.error(f"❌ Scaffold generation attempt {attempt + 1} failed: {gen_error}")
+                    if attempt < max_retries - 1:
+                        import asyncio
+                        await asyncio.sleep(2)
+            
+            if scaffold is None:
+                raise ScriptGenerationError(
+                    f"Failed to generate valid scaffold for story {story.id} after {max_retries} attempts"
                 )
-            except Exception as log_e:
-                logger.warning(f"Failed to log interaction: {log_e}")
-
-            # Validate scaffold
-            self._validate_scaffold(scaffold, story)
 
             logger.info(
                 f"Generated scaffold: {len(scaffold.acts)} acts, "
@@ -319,16 +357,25 @@ Generate the complete script scaffold now.
 
         # Validate scene count
         scene_count = scaffold.get_scene_count()
-        if not (12 <= scene_count <= 15):
-            logger.warning(
-                f"Scene count {scene_count} outside recommended range 12-15"
+        if not (10 <= scene_count <= 30):
+            raise ValueError(
+                f"Scene count {scene_count} outside range 10-30. "
+                f"Scaffold REJECTED. Please regenerate."
             )
+        
+        # Check for empty acts
+        for act in scaffold.acts:
+            if len(act.scenes) == 0:
+                raise ValueError(
+                    f"Act {act.act_type.value} has NO scenes! "
+                    f"All acts must have at least 1 scene. Scaffold REJECTED."
+                )
 
         # Validate duration
-        if not (40 <= scaffold.total_estimated_duration <= 58):
+        if not (60 <= scaffold.total_estimated_duration <= 150):
             logger.warning(
                 f"Total duration {scaffold.total_estimated_duration}s "
-                f"outside target range 40-58s"
+                f"outside target range 60-150s"
             )
 
         # Validate all scenes have order field

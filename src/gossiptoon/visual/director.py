@@ -16,8 +16,7 @@ from gossiptoon.visual.gemini_client import GeminiImageClient
 
 logger = logging.getLogger(__name__)
 
-# TICKET-028: Standardized Character Sheet Prompt Template
-CHARACTER_SHEET_TEMPLATE = """A professional animation character design reference sheet, concept art, full body view of a {age} year old {gender}. {vibe} vibe. {body_type} build. Having {hair} hair, and {face}. Wearing {outfit}. Isolated against a plain solid white background. Focus solely on the character, clean lines, cel-shaded, webtoon style, flat colors, high quality,"""
+CHARACTER_SHEET_TEMPLATE = """A professional animation character design reference sheet, concept art, full body view of a {age} year old {gender}. {vibe} vibe. {body_type} build. Having {hair} hair, and {face}. Wearing {outfit}. Isolated against a plain solid white background. Focus solely on the character, clean lines, {style}, flat colors, high quality,"""
 
 
 class VisualDirector:
@@ -159,6 +158,7 @@ class VisualDirector:
                     hair=profile.hair_style_color,
                     face=profile.face_details_expression,
                     outfit=profile.outfit,
+                    style=self.config.image.style or "Korean Webtoon style, cel-shaded",
                 )
                 # Store structural description for bank reference
                 char_description = f"{char_name}: {profile.age} {profile.gender}, {profile.hair_style_color}, {profile.outfit}"

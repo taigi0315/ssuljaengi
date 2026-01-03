@@ -28,10 +28,10 @@ WHISPER_MODELS = ["tiny", "base", "small", "medium", "large"]
 DEFAULT_WHISPER_MODEL = "base"
 
 # Script configuration
-MIN_SCRIPT_DURATION = 30.0  # seconds (was 30.0, then 40.0, back to 30.0 for flexibility)
-MAX_SCRIPT_DURATION = 65.0  # seconds (allows buffer for speed adjustments, still under 90s TikTok limit)
-TARGET_SCRIPT_DURATION = 55.0  # seconds (target sweet spot)
-MAX_SCENE_NARRATION_WORDS = 35  # slightly relaxed but still concise
+MIN_SCRIPT_DURATION = 60.0  # seconds (1 minute minimum for engaging storytelling)
+MAX_SCRIPT_DURATION = 150.0  # seconds (2.5 minutes maximum for detailed narratives)
+TARGET_SCRIPT_DURATION = 120.0  # seconds (2 minutes target sweet spot)
+MAX_SCENE_NARRATION_WORDS = 50  # increased for more detailed storytelling
 MAX_CHARACTERS_PER_VIDEO = 5
 
 # ... (Image config unchanged) ...
@@ -103,13 +103,13 @@ class CameraEffectType(str, Enum):
     LOOM = "loom"
 
 
-# Act duration guidelines (in seconds) - Revised for Shorts/TikTok 30-45s target (TICKET-026)
+# Act duration guidelines (in seconds) - Extended for 2-minute storytelling
 ACT_DURATION_RANGES = {
-    ActType.HOOK: (0.5, 2.0),    # Ultra-short hook (Instant Grab)
-    ActType.BUILD: (2.0, 4.0),   # Fast Setup
-    ActType.CRISIS: (3.0, 4.0),  # Quick escalation
-    ActType.CLIMAX: (3.0, 4.0),  # Peak impact
-    ActType.RESOLUTION: (2.0, 3.0), # Quick wrap-up
+    ActType.HOOK: (2.0, 5.0),      # Strong hook with context
+    ActType.BUILD: (10.0, 20.0),   # Detailed setup and character development
+    ActType.CRISIS: (20.0, 40.0),  # Extended escalation with multiple beats
+    ActType.CLIMAX: (30.0, 50.0),  # Peak drama with full emotional impact
+    ActType.RESOLUTION: (10.0, 20.0), # Satisfying conclusion
 }
 
 # ElevenLabs voice settings

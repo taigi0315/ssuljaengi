@@ -190,6 +190,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
         from gossiptoon.video.text_analyzer import TextAnalyzer, TextStyle
 
         for ts in segment.timestamps:
+            # Use actual audio timestamps for perfect sync
             start_str = format_timestamp_ass(ts.start + offset)
             end_str = format_timestamp_ass(ts.end + offset)
 
@@ -212,7 +213,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
                 # as High Impact provides the "pop".
                 tags += r"\c&H00FFFFFF&"
 
-            text = f"{{{tags}}}{ts.word}"
+            # FIX: Use single braces for ASS format (not triple braces which escape to double)
+            text = "{" + tags + "}" + ts.word
 
             events.append(
                 f"Dialogue: 0,{start_str},{end_str},RapidWord,,0,0,0,,{text}"

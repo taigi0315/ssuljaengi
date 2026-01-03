@@ -130,9 +130,9 @@ Your job is to take a DRAFT SCRIPT and format it into a strict JSON structure fo
     def __init__(self, config: ConfigManager):
         self.config = config
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
+            model=config.llm.script_evaluator_model,
             google_api_key=self.config.api.google_api_key,
-            temperature=0.2,  # Low temperature for strict validation
+            temperature=config.llm.script_evaluator_temperature,
             convert_system_message_to_human=True,
         )
         self.structured_llm = self.llm.with_structured_output(Script)
@@ -209,6 +209,13 @@ Apply QA fixes and return the polished script.
         ])
 
         try:
+            # For large scripts (>15 scenes), validate act-by-act to avoid LLM output size limits
+            # Lowered from 20 to 15 to handle moderately large scripts more reliably
+            if script.get_scene_count() > 15:
+                logger.info(f"Large script detected ({script.get_scene_count()} scenes), using act-by-act validation")
+                return await self._validate_script_by_acts(script, story)
+            
+            # For smaller scripts, validate all at once
             import json
             script_json = json.dumps(script.model_dump(mode="json"), indent=2)
 
@@ -218,7 +225,30 @@ Apply QA fixes and return the polished script.
             })
 
             start_time = datetime.now()
-            validated_script = await self.structured_llm.ainvoke(formatted_prompt)
+
+            # Retry logic for LLM validation (max 3 attempts)
+            validated_script = None
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    validated_script = await self.structured_llm.ainvoke(formatted_prompt)
+
+                    if validated_script is not None:
+                        break  # Success!
+                    else:
+                        logger.warning(f"⚠️ Script validation returned None (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            import asyncio
+                            await asyncio.sleep(2)  # Wait 2 seconds before retry
+                except Exception as retry_error:
+                    logger.warning(f"Script validation attempt {attempt + 1} failed: {retry_error}")
+                    if attempt < max_retries - 1:
+                        import asyncio
+                        await asyncio.sleep(2)
+
+            if validated_script is None:
+                raise Exception(f"Script validation failed after {max_retries} attempts - LLM returned None")
+
             duration_ms = (datetime.now() - start_time).total_seconds() * 1000
 
             self.debugger.log_interaction(
@@ -229,12 +259,165 @@ Apply QA fixes and return the polished script.
                 duration_ms=duration_ms
             )
 
-            logger.info(f"Script validated: {validated_script.get_scene_count()} scenes")
+            logger.info(f"✅ Script validated: {validated_script.get_scene_count()} scenes")
             return validated_script
 
         except Exception as e:
             logger.error(f"Script validation failed: {e}")
             raise e
+
+    async def _validate_script_by_acts(self, script: Script, story: Story) -> Script:
+        """Validate script act-by-act for large scripts.
+        
+        Args:
+            script: Complete script to validate
+            story: Original story for context
+            
+        Returns:
+            Validated script
+        """
+        logger.info(f"Validating {len(script.acts)} acts separately...")
+        
+        validated_acts = []
+        
+        for act_index, act in enumerate(script.acts):
+            logger.info(f"📝 Validating Act {act_index + 1}/{len(script.acts)}: {act.act_type.value}")
+            logger.info(f"📝 Act has {len(act.scenes)} scenes")
+            
+            # Validate this single act
+            validated_act = await self._validate_single_act(act, story)
+            
+            logger.info(f"📝 _validate_single_act returned: {type(validated_act)}")
+            if validated_act is None:
+                raise Exception(f"❌ CRITICAL: _validate_single_act returned None for {act.act_type.value}!")
+            
+            validated_acts.append(validated_act)
+            
+            logger.info(f"✅ Act {act_index + 1} validated: {len(validated_act.scenes)} scenes")
+        
+        # Combine all validated acts
+        validated_script = Script(
+            script_id=script.script_id,
+            story_id=script.story_id,
+            title=script.title,
+            acts=validated_acts,
+            character_profiles=script.character_profiles,
+            total_estimated_duration=script.total_estimated_duration,
+            target_audience=script.target_audience,
+            content_warnings=script.content_warnings
+        )
+        
+        logger.info(f"Script validation complete: {validated_script.get_scene_count()} scenes")
+        return validated_script
+
+    async def _validate_single_act(self, act: Act, story: Story) -> Act:
+        """Validate a single act.
+        
+        Args:
+            act: Act to validate
+            story: Original story for context
+            
+        Returns:
+            Validated act
+        """
+        simplified_prompt = """You are a QA Editor for Korean Webtoon YouTube Shorts.
+
+**CRITICAL: The script structure is ALREADY CORRECT. Only validate and polish.**
+
+**Your QA Checklist:**
+
+1. **Enum Validation**: Fix any invalid enum values
+   - emotion: excited, shocked, sympathetic, dramatic, angry, happy, sad, neutral, suspenseful, sarcastic, frustrated, determined, relieved, exasperated
+   - camera_effect: ken_burns, fade_transition, caption, zoom_in, zoom_out, pan_left, pan_right, pan_up, pan_down, shake, shake_slow, shake_fast, static, loom
+
+2. **Text Normalization**:
+   - Remove parentheticals from audio chunk text (move to director_notes)
+   - Normalize numbers: $1M → $1 million, 5K → 5 thousand
+   - Clean TTS-incompatible characters
+
+3. **Constraint Checks**:
+   - Audio chunk text: MAX 100 characters (warn if exceeded)
+   - Visual SFX: MAX 2 per act (remove excess)
+   - Shake effects: Duration MUST be <= 2.0s
+
+4. **Character Consistency**:
+   - Verify speaker_id exists
+   - Check speaker_gender consistency
+
+**DO NOT:**
+- Change structure (scene_id, order, durations)
+- Remove `target_duration_seconds` from Act
+- Add/remove scenes
+- Rewrite creative content
+
+**Output:**
+Return the act with minor QA fixes applied. Preserve all structure and creative content.
+"""
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", simplified_prompt),
+            ("human", """Validate and polish this act:
+
+**Original Story (for context):**
+{story_title}
+
+**Act (JSON):**
+{act_json}
+
+Apply QA fixes and return the polished act.
+""")
+        ])
+
+        try:
+            import json
+            act_json = json.dumps(act.model_dump(mode="json"), indent=2)
+
+            formatted_prompt = await prompt.ainvoke({
+                "story_title": story.title,
+                "act_json": act_json
+            })
+
+            start_time = datetime.now()
+            
+            # Retry logic for LLM validation (max 3 attempts)
+            validated_act = None
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    validated_act = await self.llm.with_structured_output(Act).ainvoke(formatted_prompt)
+                    
+                    if validated_act is not None:
+                        break  # Success!
+                    else:
+                        logger.warning(f"Act validation returned None (attempt {attempt + 1}/{max_retries})")
+                        if attempt < max_retries - 1:
+                            import asyncio
+                            await asyncio.sleep(1)  # Wait 1 second before retry
+                except Exception as retry_error:
+                    logger.warning(f"Act validation attempt {attempt + 1} failed: {retry_error}")
+                    if attempt < max_retries - 1:
+                        import asyncio
+                        await asyncio.sleep(1)
+            
+            if validated_act is None:
+                raise Exception(f"Act validation failed after {max_retries} attempts - LLM returned None")
+            
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+
+            self.debugger.log_interaction(
+                agent_name=f"ScriptEvaluator_QA_{act.act_type.value}",
+                prompt=formatted_prompt,
+                response=validated_act,
+                metadata={"story_id": story.id, "mode": "qa_act", "act_type": act.act_type.value},
+                duration_ms=duration_ms
+            )
+
+            return validated_act
+
+        except Exception as e:
+            logger.error(f"Act validation failed for {act.act_type.value}: {e}")
+            raise e
+
 
     async def evaluate_and_fix(self, draft_content: str, story: Story) -> Script:
         """Process the draft script into a valid Script object (LEGACY 2-AGENT WORKFLOW)."""

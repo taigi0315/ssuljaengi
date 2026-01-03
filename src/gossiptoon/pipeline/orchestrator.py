@@ -14,6 +14,7 @@ from gossiptoon.agents.scene_structurer import SceneStructurerAgent
 from gossiptoon.agents.script_evaluator import ScriptEvaluator
 from gossiptoon.agents.script_writer import ScriptWriterAgent
 from gossiptoon.agents.story_finder import StoryFinderAgent
+from gossiptoon.agents.visual_detailer import VisualDetailerAgent
 from gossiptoon.audio.generator import AudioGenerator
 from gossiptoon.core.config import ConfigManager
 from gossiptoon.core.exceptions import GossipToonException
@@ -94,6 +95,7 @@ class PipelineOrchestrator:
         self.scene_structurer = SceneStructurerAgent(config)
         self.script_writer = ScriptWriterAgent(config)
         self.script_evaluator = ScriptEvaluator(config)
+        self.visual_detailer = VisualDetailerAgent(config)
 
         self.engagement_writer = EngagementWriter(api_key=config.api.google_api_key)
         self.audio_generator = AudioGenerator(config)
@@ -418,13 +420,31 @@ class PipelineOrchestrator:
 
             # Step 2: Fill scaffold with creative content
             logger.info("Step 2/3: Filling scaffold with creative content...")
-            filled_script = await self.script_writer.fill_scaffold(story, scaffold)
-            logger.info(f"Creative content filled: {len(filled_script.acts)} acts")
+            try:
+                filled_script = await self.script_writer.fill_scaffold(story, scaffold)
+                if filled_script is None:
+                    raise GossipToonException("fill_scaffold returned None!")
+                logger.info(f"Creative content filled: {len(filled_script.acts)} acts")
+            except Exception as fill_error:
+                logger.error(f"FILL_SCAFFOLD FAILED: {fill_error}", exc_info=True)
+                raise
 
             # Step 3: QA validation and polish
             logger.info("Step 3/3: QA validation and polish...")
+            logger.info(f"📝 Calling validate_script with filled_script: {type(filled_script)}")
+            logger.info(f"📝 filled_script has {len(filled_script.acts)} acts")
+            
             final_script = await self.script_evaluator.validate_script(filled_script, story)
+            
+            logger.info(f"📝 validate_script returned: {type(final_script)}")
+            if final_script is None:
+                raise GossipToonException("❌ CRITICAL: validate_script returned None!")
+            
             logger.info(f"Script validated: {final_script.get_scene_count()} scenes")
+
+            # Step 4: Visual Enrichment (TICKET-038)
+            logger.info("Step 4: Enriching visual descriptions...")
+            final_script = await self.visual_detailer.enrich_script_visuals(final_script, story)
 
             # Post-validation (metadata, etc.)
             final_script = self.script_writer._validate_and_enhance_script(final_script, story)
