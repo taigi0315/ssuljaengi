@@ -573,13 +573,46 @@ DO NOT return just the creative content - return the full Script with structure 
             logger.error(f"Scaffold filling failed: {e}")
             raise ScriptGenerationError(f"Failed to fill scaffold: {e}") from e
 
-    async def _fill_single_act(self, story: Story, full_scaffold: Script, act: Act) -> Act:
+
+    def _summarize_filled_acts(self, filled_acts: list[Act]) -> str:
+        """Summarize previously filled acts to provide context and prevent repetition.
+        
+        Args:
+            filled_acts: List of acts that have already been filled
+            
+        Returns:
+            Formatted summary of previous acts' key content
+        """
+        if not filled_acts:
+            return ""
+        
+        summaries = []
+        for act in filled_acts:
+            # Extract key dialogue/narration from first 2-3 chunks of each scene
+            key_points = []
+            for scene in act.scenes:
+                if hasattr(scene, 'audio_chunks') and scene.audio_chunks:
+                    # Get first 2 chunks to capture main theme
+                    for chunk in scene.audio_chunks[:2]:
+                        if hasattr(chunk, 'text'):
+                            key_points.append(f"  - {chunk.text}")
+            
+            if key_points:
+                act_summary = f"**{act.act_type.value.upper()}**:\n" + "\n".join(key_points[:5])  # Max 5 points
+                summaries.append(act_summary)
+        
+        if summaries:
+            return "**What Happened in Previous Acts**:\n\n" + "\n\n".join(summaries)
+        return ""
+
+    async def _fill_single_act(self, story: Story, full_scaffold: Script, act: Act, filled_acts: list[Act] = None) -> Act:
         """Fill a single act with creative content.
         
         Args:
             story: Original story for context
             full_scaffold: Complete scaffold (for character profiles)
             act: Single act to fill
+            filled_acts: Previously filled acts (for context to prevent repetition)
             
         Returns:
             Filled act with creative content
@@ -588,6 +621,9 @@ DO NOT return just the creative content - return the full Script with structure 
             ScriptGenerationError: If act filling fails
         """
         try:
+            # Build summary of previous acts to prevent repetition
+            previous_context = self._summarize_filled_acts(filled_acts)
+            
             # Create prompt for filling this act
             act_prompt = ChatPromptTemplate.from_messages(
                 [
@@ -603,6 +639,8 @@ Category: {category}
 
 **Character Profiles (for consistency):**
 {character_profiles}
+
+{previous_context}
 
 **Act to Fill (JSON):**
 {act_json}
@@ -651,6 +689,7 @@ Return ONLY this act as a valid Act JSON object.
                 content=story.content[:1000],  # Truncate to save tokens
                 category=story.category.value,
                 character_profiles=char_profiles_str,
+                previous_context=previous_context,
                 act_json=act_json,
                 max_chars=self.config.script.max_dialogue_chars,
             )
