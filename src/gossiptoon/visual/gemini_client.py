@@ -102,10 +102,16 @@ class GeminiImageClient(ImageClient):
             client = self._init_client()
             
             logger.info(f"Generating image with {self.model}")
-            logger.debug(f"Prompt: {prompt.base_prompt[:100]}...")
-
-            # Build full prompt
-            full_prompt = prompt.build_full_prompt()
+            logger.info(f"Generating image with {self.model}")
+            
+            # Handle both string prompts and ImagePrompt objects
+            if isinstance(prompt, str):
+                full_prompt = prompt
+                logger.debug(f"Prompt (string): {prompt[:100]}...")
+            else:
+                logger.debug(f"Prompt: {prompt.base_prompt[:100]}...")
+                # Build full prompt
+                full_prompt = prompt.build_full_prompt()
             
             # Save image path setup
             if output_path is None:
@@ -118,10 +124,6 @@ class GeminiImageClient(ImageClient):
             from google.genai import types
 
             logger.info(f"Generating image with Gemini 2.5 Flash Image")
-            logger.debug(f"Prompt: {prompt.base_prompt[:100]}...")
-
-            # Build full prompt
-            full_prompt = prompt.build_full_prompt()
             
             # Create client with API key
             client = genai.Client(api_key=self.api_key)

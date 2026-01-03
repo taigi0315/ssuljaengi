@@ -259,8 +259,18 @@ Apply QA fixes and return the polished script.
                 duration_ms=duration_ms
             )
 
-            logger.info(f"✅ Script validated: {validated_script.get_scene_count()} scenes")
-            return validated_script
+            logger.info(f"✅ Script QA validated: {validated_script.get_scene_count()} scenes")
+            
+            # NEW: Perform coherence check
+            coherence_result = await self._check_story_coherence(validated_script, story)
+            
+            # Return ValidationResult with both QA and coherence info
+            from gossiptoon.models.script import ValidationResult
+            return ValidationResult(
+                script=validated_script,
+                is_coherent=coherence_result.is_coherent,
+                issues=coherence_result.issues
+            )
 
         except Exception as e:
             logger.error(f"Script validation failed: {e}")
@@ -308,7 +318,17 @@ Apply QA fixes and return the polished script.
         )
         
         logger.info(f"Script validation complete: {validated_script.get_scene_count()} scenes")
-        return validated_script
+        
+        # NEW: Perform coherence check
+        coherence_result = await self._check_story_coherence(validated_script, story)
+        
+        # Return ValidationResult with both QA and coherence info
+        from gossiptoon.models.script import ValidationResult
+        return ValidationResult(
+            script=validated_script,
+            is_coherent=coherence_result.is_coherent,
+            issues=coherence_result.issues
+        )
 
     async def _validate_single_act(self, act: Act, story: Story) -> Act:
         """Validate a single act.
@@ -476,3 +496,103 @@ Apply QA fixes and return the polished act.
         except Exception as e:
             logger.error(f"Script evaluation failed: {e}")
             raise e
+
+    async def _check_story_coherence(self, script: Script, story: Story) -> 'CoherenceResult':
+        """Check if the script has good story progression without repetition.
+        
+        Args:
+            script: Complete script to check
+            story: Original story for context
+            
+        Returns:
+            CoherenceResult with coherence status and issues
+        """
+        from gossiptoon.models.script import CoherenceResult
+        
+        logger.info("Checking story coherence...")
+        
+        coherence_prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are a Story Editor for Korean Webtoon YouTube Shorts.
+
+**Task**: Evaluate this script for story coherence and repetition.
+
+**Evaluation Criteria**:
+1. **Story Progression**: Does each act introduce NEW information or developments?
+2. **Dialogue Repetition**: Are characters asking the same questions or having the same reactions multiple times?
+3. **Emotional Beats**: Do acts repeat the same emotional journey?
+
+**Be STRICT**: Even similar phrasing counts as repetition.
+
+**Output**:
+- `is_coherent`: true if story progresses well, false if repetitive
+- `issues`: List of specific problems (e.g., "CRISIS and CLIMAX both repeat 'how dare she' reaction")
+- `suggested_fixes`: What should change in each problematic act (act_type -> suggestion)
+"""),
+            ("human", """Evaluate this script for coherence:
+
+**Original Story**: {story_title}
+{story_content}
+
+**Script**: {script_summary}
+
+Check for repetition and story progression issues.""")
+        ])
+        
+        # Build script summary (extract key dialogue from each act)
+        import json
+        script_summary_parts = []
+        for act in script.acts:
+            act_dialogue = []
+            for scene in act.scenes[:3]:  # First 3 scenes per act
+                if hasattr(scene, 'audio_chunks') and scene.audio_chunks:
+                    for chunk in scene.audio_chunks[:2]:  # First 2 chunks
+                        if hasattr(chunk, 'text'):
+                            act_dialogue.append(f"  - {chunk.text}")
+            if act_dialogue:
+                script_summary_parts.append(f"**{act.act_type.value.upper()}**:\n" + "\n".join(act_dialogue))
+        
+        script_summary = "\n\n".join(script_summary_parts)
+        
+        try:
+            start_time = datetime.now()
+            
+            # Use LLM to evaluate coherence
+            coherence_llm = self.llm.with_structured_output(CoherenceResult)
+            result = await coherence_llm.ainvoke(
+                coherence_prompt.format_messages(
+                    story_title=story.title,
+                    story_content=story.content[:500],  # First 500 chars
+                    script_summary=script_summary
+                )
+            )
+            
+            duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            
+            # Log interaction
+            self.debugger.log_interaction(
+                agent_name="ScriptEvaluator_Coherence",
+                prompt=coherence_prompt.format_messages(
+                    story_title=story.title,
+                    story_content=story.content[:500],
+                    script_summary="<script_summary_omitted>"
+                ),
+                response=result,
+                metadata={"story_id": story.id, "mode": "coherence_check"},
+                duration_ms=duration_ms
+            )
+            
+            if result.is_coherent:
+                logger.info("✅ Script passed coherence check")
+            else:
+                logger.warning(f"❌ Script has coherence issues: {result.issues}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Coherence check failed: {e}")
+            # Return default "coherent" result if check fails (don't block pipeline)
+            return CoherenceResult(
+                is_coherent=True,
+                issues=[],
+                suggested_fixes={}
+            )

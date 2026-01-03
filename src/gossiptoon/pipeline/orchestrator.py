@@ -407,39 +407,69 @@ class PipelineOrchestrator:
             Script object
         """
         if self.use_new_workflow:
-            logger.info("Using NEW 3-agent workflow (Structure-First)")
-
-            # Step 1: Generate scaffold (structure only)
-            logger.info("Step 1/3: Generating script scaffold...")
-            scaffold = await self.scene_structurer.generate_scaffold(story)
-            logger.info(
-                f"Scaffold complete: {scaffold.get_scene_count()} scenes, "
-                f"{len(scaffold.character_profiles)} characters, "
-                f"{scaffold.total_estimated_duration}s"
-            )
-
-            # Step 2: Fill scaffold with creative content
-            logger.info("Step 2/3: Filling scaffold with creative content...")
-            try:
-                filled_script = await self.script_writer.fill_scaffold(story, scaffold)
-                if filled_script is None:
-                    raise GossipToonException("fill_scaffold returned None!")
-                logger.info(f"Creative content filled: {len(filled_script.acts)} acts")
-            except Exception as fill_error:
-                logger.error(f"FILL_SCAFFOLD FAILED: {fill_error}", exc_info=True)
-                raise
-
-            # Step 3: QA validation and polish
-            logger.info("Step 3/3: QA validation and polish...")
-            logger.info(f"📝 Calling validate_script with filled_script: {type(filled_script)}")
-            logger.info(f"📝 filled_script has {len(filled_script.acts)} acts")
+            # NEW 3-AGENT WORKFLOW with FEEDBACK LOOP (TICKET-041)
+            logger.info("Using NEW 3-agent workflow (with coherence check)")
             
-            final_script = await self.script_evaluator.validate_script(filled_script, story)
+            # FEEDBACK LOOP: Retry script generation if coherence check fails
+            max_attempts = 3
+            final_validation_result = None
             
-            logger.info(f"📝 validate_script returned: {type(final_script)}")
-            if final_script is None:
-                raise GossipToonException("❌ CRITICAL: validate_script returned None!")
+            for attempt in range(1, max_attempts + 1):
+                logger.info(f"📝 Script generation attempt {attempt}/{max_attempts}")
+                
+                try:
+                    # Step 1: Generate Structure
+                    logger.info("Step 1: Generating script structure...")
+                    scaffold = await self.scene_structurer.generate_scaffold(story)
+                    logger.info(f"Scaffold generated: {scaffold.get_scene_count()} scenes")
+
+                    # Step 2: Fill Creative Content
+                    logger.info("Step 2: Filling creative content...")
+                    filled_script = await self.script_writer.fill_scaffold(story, scaffold)
+                    
+                    if filled_script is None:
+                        raise GossipToonException("❌ CRITICAL: fill_scaffold returned None!")
+                    
+                    logger.info(f"Script filled: {filled_script.get_scene_count()} scenes")
+
+                    # Step 3: Validate & Coherence Check
+                    logger.info("Step 3: Validating script (QA + coherence check)...")
+                    validation_result = await self.script_evaluator.validate_script(filled_script, story)
+                    
+                    if validation_result is None:
+                        raise GossipToonException("❌ CRITICAL: validate_script returned None!")
+                    
+                    # Check coherence
+                    if validation_result.is_coherent:
+                        logger.info(f"✅ Script passed coherence check (attempt {attempt})")
+                        final_validation_result = validation_result
+                        break  # Success!
+                    else:
+                        # Coherence check failed
+                        logger.warning(f"❌ Script rejected - coherence issues (attempt {attempt}/{max_attempts})")
+                        for issue in validation_result.issues:
+                            logger.warning(f"  - {issue}")
+                        
+                        if attempt < max_attempts:
+                            logger.info("🔄 Regenerating script with fresh attempt...")
+                            import asyncio
+                            await asyncio.sleep(2)  # Brief pause before retry
+                        else:
+                            logger.error(f"❌ All {max_attempts} attempts failed - proceeding with last script despite issues")
+                            final_validation_result = validation_result
+                            
+                except Exception as e:
+                    logger.error(f"Script generation attempt {attempt} failed: {e}")
+                    if attempt >= max_attempts:
+                        raise
+                    logger.info("Retrying...")
+                    import asyncio
+                    await asyncio.sleep(2)
             
+            if final_validation_result is None:
+                raise GossipToonException("Failed to generate script after all attempts")
+            
+            final_script = final_validation_result.script
             logger.info(f"Script validated: {final_script.get_scene_count()} scenes")
 
             # Step 4: Visual Enrichment (TICKET-038)

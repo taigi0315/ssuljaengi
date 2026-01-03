@@ -1,7 +1,7 @@
 """Visual data models for image generation and character consistency."""
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -107,7 +107,7 @@ class VisualAsset(BaseModel):
 
     scene_id: str = Field(..., description="Reference to scene")
     image_path: Path = Field(..., description="Path to generated image")
-    prompt_used: ImagePrompt = Field(..., description="Prompt used for generation")
+    prompt_used: Union[str, ImagePrompt] = Field(..., description="Prompt used for generation")
     generation_metadata: dict[str, Any] = Field(
         default_factory=dict, description="Additional generation metadata"
     )
