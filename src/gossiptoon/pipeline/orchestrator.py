@@ -418,7 +418,6 @@ class PipelineOrchestrator:
                 logger.info(f"📝 Script generation attempt {attempt}/{max_attempts}")
                 
                 try:
-                try:
                     # Step 1: Generate Structure
                     logger.info("Step 1: Generating script structure...")
                     scaffold = await self.scene_structurer.generate_scaffold(story)
@@ -455,22 +454,13 @@ class PipelineOrchestrator:
                         if validation_result.fidelity and validation_result.fidelity.verdict == "FAIL":
                              logger.error(f"Fidelity Issues: {validation_result.fidelity.missing_key_points}")
 
-                        # If this was the last attempt, use the best result we have (or this result)
-                        # but flag it as failed.
+                        # Store result anyway in case we run out of retries
                         final_validation_result = validation_result
-                    else:
-                        # Coherence check failed
-                        logger.warning(f"❌ Script rejected - coherence issues (attempt {attempt}/{max_attempts})")
-                        for issue in validation_result.issues:
-                            logger.warning(f"  - {issue}")
-                        
+
                         if attempt < max_attempts:
-                            logger.info("🔄 Regenerating script with fresh attempt...")
+                            logger.info("🔄 Regenerating script...")
                             import asyncio
-                            await asyncio.sleep(2)  # Brief pause before retry
-                        else:
-                            logger.error(f"❌ All {max_attempts} attempts failed - proceeding with last script despite issues")
-                            final_validation_result = validation_result
+                            await asyncio.sleep(2)
                             
                 except Exception as e:
                     logger.error(f"Script generation attempt {attempt} failed: {e}")
