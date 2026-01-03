@@ -583,7 +583,7 @@ CHARACTER CONSISTENCY REQUIREMENTS:
         for char_name in scene.characters_present:
             char_info = character_bank.get_character(char_name)
             if char_info:
-                char_desc_parts.append(f"{char_name}: {char_info['description']}")
+                char_desc_parts.append(f"{char_name}: {char_info.description}")
         
         char_context = " | ".join(char_desc_parts) if char_desc_parts else ""
         
