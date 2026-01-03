@@ -564,8 +564,8 @@ CHARACTER CONSISTENCY REQUIREMENTS:
         
         # Determine layout instruction
         layout_instructions = {
-            PanelTemplateType.TEMPLATE_A_3PANEL: "Vertical layout with 3 panels stacked top to bottom, separated by thin black borders",
-            PanelTemplateType.TEMPLATE_B_4PANEL: "2x2 grid layout with 4 panels, separated by thin black borders",
+            PanelTemplateType.VERTICAL_3: "Vertical layout with 3 panels stacked top to bottom, separated by thin black borders",
+            PanelTemplateType.VERTICAL_4: "2x2 grid layout with 4 panels, separated by thin black borders",
         }
         
         layout = layout_instructions.get(panel_template, "Multi-panel vertical layout")
