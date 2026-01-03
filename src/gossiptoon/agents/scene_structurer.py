@@ -81,22 +81,21 @@ class SceneStructurerAgent:
    - `content_warnings`: [] (empty array)
 
 **Duration Calculation Rules:**
-- Total video duration: 60-150 seconds (target: 90s for 1.5-minute storytelling)
-- Scene duration: 4.0-6.0s (average 4.5s for detailed narration)
-- **Number of scenes: 10-30 scenes total across 5 acts**
-- Hook: 1-2 scenes (4-8s total)
-- Build: 2-6 scenes (8-30s total)
-- Crisis: 3-8 scenes (12-40s total)
-- Climax: 3-10 scenes (12-50s total)
-- Resolution: 2-6 scenes (8-30s total)
+- Total video duration: 90-180 seconds (flexible to accommodate story details)
+- Scene duration: 3.0-8.0 seconds (flexible based on content density)
+- **Number of scenes: 15-40 scenes total** (enough to cover ALL key details)
+- Hook: 1-3 scenes
+- Build: Flexible
+- Crisis: Flexible
+- Climax: Flexible
+- Resolution: Flexible
 
 **Scene Allocation Strategy:**
-Based on story complexity:
-- Simple story (< 500 words): 10-15 scenes
-- Medium story (500-1000 words): 16-22 scenes
-- Complex story (> 1000 words): 23-30 scenes
+- **CONTENT IS KING**: Do not cut scenes just to fit a time limit. If the story needs more scenes, add them.
+- **Coverage Check**: Ensure EVERY key plot point from the source story has a corresponding scene.
+- **Pacing**: Use shorter scenes (3s) for action, longer scenes (6-8s) for dense narration/explanation.
 
-**LLM has flexibility** - focus on story flow and pacing.
+**LLM has flexibility** - focus on story flow and COMPLETE information retention.
 
 **CRITICAL RULES:**
 1. DO NOT generate creative content (dialogue, visual descriptions)
